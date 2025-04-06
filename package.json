@@ -1,0 +1,41 @@
+{
+  "name": "tender_app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "watch": "ts-node-dev --respawn --transpile-only src/server.ts  config:env/dev.env",
+    "dev-build": "node dist/server.js  config:env/dev.env",
+    "dev": "ts-node src/server.ts  config:env/dev.env",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1584.0",
+    "busboy": "^1.6.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "express-http-context": "^2.0.0",
+    "joi": "^17.12.2",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "mongoose": "^8.2.1",
+    "mongoose-autopopulate": "^1.1.0",
+    "path": "^0.12.7",
+    "winston": "^3.12.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^22.14.0",
+    "i": "^0.3.7",
+    "typescript": "^5.8.2"
+  }
+}
