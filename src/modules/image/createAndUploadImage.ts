@@ -1,7 +1,6 @@
 import { Types } from "mongoose";
 import { Image } from ".";
 import { saveImageToDb } from "./saveImageToDb";
-import AWS from "aws-sdk";
 
 interface UploadFileProps {
   filename: string;
@@ -33,14 +32,14 @@ export const createAndUploadImage = async (
   const _id = new Types.ObjectId().toString();
 
   // const uploadedImage = await uploadImageToS3(file);
-      // const uploadedImage = await s3
-      //   .upload({
-      //     Bucket: process.env.AWS_BUCKET_NAME,
-      //     Key: `images/${_id}/${file.originalname}`,
-      //     Body: file.buffer,
-      //     ACL: "public-read",
-      //   })
-      //   .promise();
+  // const uploadedImage = await s3
+  //   .upload({
+  //     Bucket: process.env.AWS_BUCKET_NAME,
+  //     Key: `images/${_id}/${file.originalname}`,
+  //     Body: file.buffer,
+  //     ACL: "public-read",
+  //   })
+  //   .promise();
 
   // const S3ImageURL = uploadedImage.Location;
   const S3ImageURL =

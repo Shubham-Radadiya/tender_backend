@@ -10,7 +10,7 @@ export default class User extends Controller {
 
   private initializeRoutes() {
     this.router.post("/", this.createUser);
-    this.router.put("/", this.updateUser);
-    this.router.delete("/", this.deleteUser);
+    this.router.put("/:id", this.updateUser);
+    this.router.delete("/:id", this.deleteUser);
   }
 }
