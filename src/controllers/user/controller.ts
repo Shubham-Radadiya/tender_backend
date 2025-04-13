@@ -10,6 +10,7 @@ import {
   createUser,
   updateUser,
   deleteUserById,
+  getUser,
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
 
@@ -90,6 +91,24 @@ export default class Controller {
       website: Joi.string(),
     }).optional(),
   });
+
+  protected readonly get = async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.id;
+      if (userId) {
+        const user = await getUserById(userId);
+        res.status(200).json({ message: "User Listed", user });
+        return;
+      }
+      const userList = await getUser();
+      res.status(200).json({ message: "User Listed", userList });
+      return;
+    } catch (error) {
+      console.log("Error in getting the User", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
 
   protected readonly createUser = async (req: Request, res: Response) => {
     try {

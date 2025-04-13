@@ -11,16 +11,13 @@ export enum Status {
 
 const tender = new Schema<ITender>(
   {
-    tenderNumber: { type: String },
+    tenderNo: { type: String },
     name: { type: String },
+    tenderType: { type: String, default: "GEM" },
     createdDate: { type: Date },
-    submissionDeadline: { type: Date },
-    category: { type: String },
-    department: {
-      name: { type: String },
-      address: { type: String },
-      website: { type: String },
-    },
+    lastDate: { type: Date },
+    category: { type: Schema.Types.ObjectId, ref: "category" },
+    department: { type: Schema.Types.ObjectId, ref: "department" },
     nameOfWork: { type: String },
     providedBy: { type: String },
     items: [

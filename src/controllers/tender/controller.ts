@@ -3,95 +3,64 @@ import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
 import { SHA256 } from "crypto-js";
-import { createTender, deleteTenderById, getTender, getTenderById, ITender, Tender, updateTender } from "../../modules/tender";
+import {
+  createTender,
+  deleteTenderById,
+  getTender,
+  getTenderById,
+  ITender,
+  Tender,
+  updateTender,
+} from "../../modules/tender";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    dob: Joi.date().required(),
-    address: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .required(),
-    password: Joi.string()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      })
-      .required(),
-    phoneNumber: Joi.string().required(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
+    tenderNo: Joi.string().required(),
+    name: Joi.string().required(),
+    createdDate: Joi.date().required(),
+    lastDate: Joi.date().required(),
+    category: Joi.string().required(),
+    department: Joi.string().required(),
+    nameOfWork: Joi.string().required(),
+    providedBy: Joi.string().required(),
+    items: Joi.array()
+      .items(
+        Joi.object({
+          description: Joi.string().required(),
+          quantity: Joi.number().required(),
+          unit: Joi.string().required(),
+        })
       )
       .required(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
   });
 
   private readonly updateTenderSchema = Joi.object({
-    firstName: Joi.string().optional(),
-    lastName: Joi.string().optional(),
-    dob: Joi.date().optional(),
-    address: Joi.string().optional(),
-    city: Joi.string().optional(),
-    state: Joi.string().optional(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .optional(),
-    password: Joi.string().min(6).optional(),
-    phoneNumber: Joi.string().optional(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .optional(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
+    tenderNo: Joi.string(),
+    name: Joi.string(),
+    createdDate: Joi.date(),
+    lastDate: Joi.date(),
+    category: Joi.string(),
+    department: Joi.string(),
+    nameOfWork: Joi.string(),
+    providedBy: Joi.string(),
+    items: Joi.array().items(
+      Joi.object({
+        description: Joi.string().required(),
+        quantity: Joi.number().required(),
+        unit: Joi.string().required(),
+      })
+    ),
   });
 
   protected readonly getTender = async (req: Request, res: Response) => {
     try {
       const tenderId = req.params.id;
       if (tenderId) {
-        const tender = await getTenderById(tenderId)
+        const tender = await getTenderById(tenderId);
         res.status(200).json({ message: "Tender Listed", tender });
         return;
       }
-      const tenderList = await getTender()
+      const tenderList = await getTender();
       res.status(200).json({ message: "Tender Listed", tenderList });
       return;
     } catch (error) {
@@ -101,10 +70,11 @@ export default class Controller {
       });
       return;
     }
-  }
+  };
 
   protected readonly createTender = async (req: Request, res: Response) => {
     try {
+      const userId = req.authUser._id;
       const payload = req.body;
       const payloadValue: ITender = await this.createTenderSchema
         .validateAsync(payload)
@@ -125,7 +95,9 @@ export default class Controller {
         return;
       }
 
-      const newTender = await createTender(new Tender({ ...payloadValue }));
+      const newTender = await createTender(
+        new Tender({ ...payloadValue, createdBy: userId })
+      );
       res.status(201).json(newTender);
       return;
     } catch (error) {
@@ -142,33 +114,29 @@ export default class Controller {
       const tenderId = req.params.id;
       const payload = req.body;
 
-      const payloadValue: ITender = await this.updateTenderSchema
+      const payloadValue: Partial<ITender> = await this.updateTenderSchema
         .validateAsync(payload)
-        .then((value) => {
-          return value;
-        })
+        .then((value) => value)
         .catch((e) => {
           console.log(e);
-          if (isError(e)) {
-            res.status(422).json(e);
-            return;
-          } else {
-            res.status(422).json({ message: e.message });
-            return;
-          }
+          res.status(422).json(isError(e) ? e : { message: e.message });
+          return null;
         });
-      if (!payloadValue) {
-        return;
-      }
+
+      if (!payloadValue) return;
+
       const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
         res.status(404).json({ message: "Tender not found" });
         return;
       }
 
-      const updated = await updateTender(
-        new Tender({ ...existingTender, ...payloadValue })
-      );
+      const mergedTender = {
+        ...existingTender.toJSON(),
+        ...payloadValue,
+      };
+
+      const updated = await updateTender(new Tender(mergedTender));
       res.status(200).json(updated);
       return;
     } catch (error) {

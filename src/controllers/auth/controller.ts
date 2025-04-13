@@ -6,11 +6,13 @@ import { AES, SHA256 } from "crypto-js";
 import {
   IUser,
   User,
+  createUser,
   getPopulatedUser,
   getUserByEmail,
   updateUser,
 } from "../../modules/user";
 import { generateToken } from "../../helper/jwtToken";
+import { UserModel, UserRole } from "../../modules/user/schema";
 
 export default class Controller {
   private readonly loginSchema = Joi.object({
@@ -30,7 +32,6 @@ export default class Controller {
       .custom((v) => {
         return SHA256(v).toString();
       }),
-    pushToken: Joi.string().optional(),
   });
   private readonly resetPasswordSchema = Joi.object({
     email: Joi.string()
@@ -154,6 +155,82 @@ export default class Controller {
       res.status(200).json(populatedUser);
     } catch (error) {
       console.log("########## Error in Reset Password", error);
+      res.status(500).json({
+        message: "Something happened wrong try again after sometime.",
+        error: _get(error, "message"),
+      });
+    }
+  };
+
+  protected readonly addUsers = async (req: Request, res: Response) => {
+    try {
+      const defaultUsers = [
+        {
+          firstName: "ADMIN",
+          lastName: "test",
+          email: "admin@gmail.com",
+          role: UserRole.ADMIN,
+        },
+        {
+          firstName: "TM",
+          lastName: "test",
+          email: "tm@gmail.com",
+          role: UserRole.TENDER_MANAGER,
+        },
+        {
+          firstName: "GM",
+          lastName: "test",
+          email: "gm@gmail.com",
+          role: UserRole.GROUP_MANAGER,
+        },
+        {
+          firstName: "Sahjanand",
+          lastName: "Enterprise",
+          email: "cm@gmail.com",
+          role: UserRole.COMPANY_MANAGER,
+        },
+        {
+          firstName: "BM",
+          lastName: "test",
+          email: "bm@gmail.com",
+          role: UserRole.BANK_MANAGER,
+        },
+      ];
+
+      const hashedPassword = await SHA256("admin@123").toString();
+
+      const promises = defaultUsers.map(async (user) => {
+        const existingUser = await UserModel.findOne({ email: user.email });
+
+        const commonFields = {
+          ...user,
+          password: hashedPassword,
+          dob: new Date("1000-01-11"),
+          phoneNumber: "1234567890",
+          address: "5th lorem ipsum",
+          city: "ABC",
+          state: "Gujarat",
+          profile:
+            "https://fastly.picsum.photos/id/674/200/300.webp?hmac=JC6maMsnZpQnPL0Goni0akBwySwzftv6rI94aPPBhpA",
+        };
+
+        if (existingUser) {
+          await UserModel.findByIdAndUpdate(existingUser._id, commonFields);
+          return { ...commonFields, _id: existingUser._id, updated: true };
+        } else {
+          const created = await createUser(new User(commonFields));
+          return { ...created, updated: false };
+        }
+      });
+
+      const results = await Promise.all(promises);
+
+      res.status(200).json({
+        message: "Users processed successfully",
+        data: results,
+      });
+    } catch (error) {
+      console.log("########## Error in Adding Users", error);
       res.status(500).json({
         message: "Something happened wrong try again after sometime.",
         error: _get(error, "message"),

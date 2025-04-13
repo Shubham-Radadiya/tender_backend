@@ -7,6 +7,9 @@ import { TenderModel } from "./schema";
  * @returns relevant tender record | null
  */
 export const getTenderById = async (_id: string) => {
-  const tender = await TenderModel.findById(_id);
+  const tender = await TenderModel.findById(_id)
+    .populate("category")
+    .populate("department")
+    .lean();
   return tender ? new Tender(tender) : null;
 };

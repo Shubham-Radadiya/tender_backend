@@ -7,7 +7,11 @@ import cookieParser from "cookie-parser";
 import { validateAuthIdToken } from "./middleware/validateAuthUser";
 import Auth from "./controllers/auth";
 import User from "./controllers/user";
+import Category from "./controllers/category";
+import Department from "./controllers/department";
 import Image from "./controllers/image";
+import Tender from "./controllers/tender";
+import Company from "./controllers/company";
 
 export default class App {
   public static instance: express.Application;
@@ -47,6 +51,14 @@ export default class App {
   private static initializeControllers() {
     this.instance.use("/auth", new Auth().router);
     this.instance.use("/user", validateAuthIdToken, new User().router);
+    this.instance.use("/category", validateAuthIdToken, new Category().router);
+    this.instance.use(
+      "/department",
+      validateAuthIdToken,
+      new Department().router
+    );
+    this.instance.use("/tender", validateAuthIdToken, new Tender().router);
+    this.instance.use("/company", validateAuthIdToken, new Company().router);
     this.instance.use("/image", validateAuthIdToken, new Image().router);
   }
 }

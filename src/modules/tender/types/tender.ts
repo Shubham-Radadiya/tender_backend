@@ -2,19 +2,18 @@ import { Types } from "mongoose";
 import { isUndefined, omitBy } from "lodash";
 import { Status } from "../schema";
 import { IUser } from "../../user";
+import { ICategory } from "../../category";
+import { IDepartment } from "../../department";
 
 export interface ITender {
   _id?: string;
-  tenderNumber: string;
+  tenderNo: string;
+  tenderType: string;
   name: string;
   createdDate: Date;
-  submissionDeadline: Date;
-  category: string;
-  department: {
-    name: string;
-    address: string;
-    website: string;
-  };
+  lastDate: Date;
+  category: string | ICategory;
+  department: string | IDepartment;
   nameOfWork: string;
   providedBy: string;
   items: {
@@ -26,7 +25,7 @@ export interface ITender {
   status: Status;
   assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
-  history: {
+  history?: {
     action: string;
     by: string | IUser;
     date: Date;
@@ -37,16 +36,13 @@ export interface ITender {
 
 export class Tender implements ITender {
   _id?: string;
-  tenderNumber: string;
+  tenderNo: string;
+  tenderType: string;
   name: string;
   createdDate: Date;
-  submissionDeadline: Date;
-  category: string;
-  department: {
-    name: string;
-    address: string;
-    website: string;
-  };
+  lastDate: Date;
+  category: string | ICategory;
+  department: string | IDepartment;
   nameOfWork: string;
   providedBy: string;
   items: {
@@ -54,13 +50,13 @@ export class Tender implements ITender {
     quantity: number;
     unit: string;
   }[];
-  createdBy: string;
+  createdBy: string | IUser;
   status: Status;
-  assignedTo?: string;
-  companyAssigned?: string;
-  history: {
+  assignedTo?: string | IUser;
+  companyAssigned?: string | IUser;
+  history?: {
     action: string;
-    by: string;
+    by: string | IUser;
     date: Date;
   }[];
   createdAt?: Date;
@@ -70,35 +66,27 @@ export class Tender implements ITender {
     this._id = input._id
       ? input._id.toString()
       : new Types.ObjectId().toString();
-    this.tenderNumber = input.tenderNumber;
+    this.tenderNo = input.tenderNo;
+    this.tenderType = input.tenderType;
     this.name = input.name;
     this.createdDate = input.createdDate;
-    this.submissionDeadline = input.submissionDeadline;
+    this.lastDate = input.lastDate;
     this.category = input.category;
     this.department = input.department;
     this.nameOfWork = input.nameOfWork;
     this.providedBy = input.providedBy;
     this.items = input.items;
-    this.createdBy =
-      typeof input.createdBy === "string"
-        ? input.createdBy
-        : input.createdBy._id;
+    this.createdBy = input.createdBy;
     this.status = input.status;
-    this.assignedTo = input.assignedTo
-      ? typeof input.assignedTo === "string"
-        ? input.assignedTo
-        : input.assignedTo._id
-      : undefined;
-    this.companyAssigned = input.companyAssigned
-      ? typeof input.companyAssigned === "string"
-        ? input.companyAssigned
-        : input.companyAssigned._id
-      : undefined;
-    this.history = input.history.map((h) => ({
-      action: h.action,
-      by: typeof h.by === "string" ? h.by : h.by._id,
-      date: h.date,
-    }));
+    this.assignedTo = input.assignedTo;
+    this.companyAssigned = input.companyAssigned;
+    this.history = input.history
+      ? input.history.map((h) => ({
+          action: h.action,
+          by: h.by,
+          date: h.date,
+        }))
+      : [];
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
   }

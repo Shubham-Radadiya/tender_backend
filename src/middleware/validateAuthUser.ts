@@ -10,10 +10,7 @@ export const validateAuthIdToken = async (
   res: Response,
   next: NextFunction
 ) => {
-  const token =
-    req.headers.authorization ||
-    req.signedCookies.auth ||
-    req.signedCookies.admin_auth;
+  const token = req.headers.authorization;
 
   if (!token) {
     res.clearCookie("admin_auth", {
