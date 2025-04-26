@@ -3,7 +3,15 @@ import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
 import { SHA256 } from "crypto-js";
-import { createPartyWork, deletePartyWorkById, getPartyWork, getPartyWorkById, IPartyWork, PartyWork, updatePartyWork } from "../../modules/partyWork";
+import {
+  createPartyWork,
+  deletePartyWorkById,
+  getPartyWork,
+  getPartyWorkById,
+  IPartyWork,
+  PartyWork,
+  updatePartyWork,
+} from "../../modules/partyWork";
 
 export default class Controller {
   private readonly createPartyWorkSchema = Joi.object({
@@ -87,11 +95,11 @@ export default class Controller {
     try {
       const partyWorkId = req.params.id;
       if (partyWorkId) {
-        const partyWork = await getPartyWorkById(partyWorkId)
+        const partyWork = await getPartyWorkById(partyWorkId);
         res.status(200).json({ message: "PartyWork Listed", partyWork });
         return;
       }
-      const partyWorkList = await getPartyWork()
+      const partyWorkList = await getPartyWork();
       res.status(200).json({ message: "PartyWork Listed", partyWorkList });
       return;
     } catch (error) {
@@ -101,11 +109,14 @@ export default class Controller {
       });
       return;
     }
-  }
+  };
 
   protected readonly createPartyWork = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IPartyWork = await this.createPartyWorkSchema
         .validateAsync(payload)
         .then((value) => {
@@ -125,7 +136,9 @@ export default class Controller {
         return;
       }
 
-      const newPartyWork = await createPartyWork(new PartyWork({ ...payloadValue }));
+      const newPartyWork = await createPartyWork(
+        new PartyWork({ ...payloadValue })
+      );
       res.status(201).json(newPartyWork);
       return;
     } catch (error) {
@@ -141,7 +154,9 @@ export default class Controller {
     try {
       const partyWorkId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IPartyWork = await this.updatePartyWorkSchema
         .validateAsync(payload)
         .then((value) => {

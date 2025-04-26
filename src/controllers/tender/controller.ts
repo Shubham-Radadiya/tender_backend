@@ -76,6 +76,9 @@ export default class Controller {
     try {
       const userId = req.authUser._id;
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: ITender = await this.createTenderSchema
         .validateAsync(payload)
         .then((value) => {
@@ -113,7 +116,9 @@ export default class Controller {
     try {
       const tenderId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: Partial<ITender> = await this.updateTenderSchema
         .validateAsync(payload)
         .then((value) => value)

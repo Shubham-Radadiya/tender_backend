@@ -49,6 +49,9 @@ export default class Controller {
   protected readonly createDepartment = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IDepartment = await this.createDepartmentSchema
         .validateAsync(payload)
         .then((value) => {
@@ -86,7 +89,9 @@ export default class Controller {
     try {
       const departmentId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IDepartment = await this.updateDepartmentSchema
         .validateAsync(payload)
         .then((value) => {

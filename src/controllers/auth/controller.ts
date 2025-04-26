@@ -56,6 +56,9 @@ export default class Controller {
   protected readonly login = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IUser = await this.loginSchema
         .validateAsync(payload)
         .then((value) => {
@@ -109,6 +112,9 @@ export default class Controller {
   protected readonly resetPassword = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       if (payload.newPassword !== payload.confirmPassword) {
         res.status(403).json({
           message: "Confirm password must match the new password",
@@ -202,7 +208,7 @@ export default class Controller {
       const promises = defaultUsers.map(async (user) => {
         const existingUser = await UserModel.findOne({ email: user.email });
 
-        const commonFields = {
+        const commonFields: any = {
           ...user,
           password: hashedPassword,
           dob: new Date("1000-01-11"),
@@ -215,9 +221,24 @@ export default class Controller {
         };
 
         if (existingUser) {
+          if (
+            user.role === UserRole.COMPANY_MANAGER &&
+            !existingUser?.companyDetails?.annualTenderCap
+          ) {
+            if (!commonFields.companyDetails) {
+              commonFields.companyDetails = {};
+            }
+            commonFields.companyDetails.annualTenderCap = 10000;
+          }
           await UserModel.findByIdAndUpdate(existingUser._id, commonFields);
           return { ...commonFields, _id: existingUser._id, updated: true };
         } else {
+          if (user.role === UserRole.COMPANY_MANAGER) {
+            if (!commonFields.companyDetails) {
+              commonFields.companyDetails = {};
+            }
+            commonFields.companyDetails.annualTenderCap = 10000;
+          }
           const created = await createUser(new User(commonFields));
           return { ...created, updated: false };
         }

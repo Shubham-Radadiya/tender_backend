@@ -3,7 +3,15 @@ import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
 import { SHA256 } from "crypto-js";
-import { createParty, deletePartyById, getParty, getPartyById, IParty, Party, updateParty } from "../../modules/party";
+import {
+  createParty,
+  deletePartyById,
+  getParty,
+  getPartyById,
+  IParty,
+  Party,
+  updateParty,
+} from "../../modules/party";
 
 export default class Controller {
   private readonly createPartySchema = Joi.object({
@@ -87,11 +95,11 @@ export default class Controller {
     try {
       const partyId = req.params.id;
       if (partyId) {
-        const party = await getPartyById(partyId)
+        const party = await getPartyById(partyId);
         res.status(200).json({ message: "Party Listed", party });
         return;
       }
-      const partyList = await getParty()
+      const partyList = await getParty();
       res.status(200).json({ message: "Party Listed", partyList });
       return;
     } catch (error) {
@@ -101,11 +109,14 @@ export default class Controller {
       });
       return;
     }
-  }
+  };
 
   protected readonly createParty = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IParty = await this.createPartySchema
         .validateAsync(payload)
         .then((value) => {
@@ -141,7 +152,9 @@ export default class Controller {
     try {
       const partyId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IParty = await this.updatePartySchema
         .validateAsync(payload)
         .then((value) => {

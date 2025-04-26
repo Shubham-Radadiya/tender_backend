@@ -13,6 +13,7 @@ export interface ICompanyDetails {
   gstNumber?: string;
   ifscCode?: string;
   website?: string;
+  annualTenderCap?: number;
 }
 
 export interface IUser {
@@ -28,8 +29,8 @@ export interface IUser {
   phoneNumber: string;
   profile?: string;
   role: UserRole;
-  // Only for COMPANY_MANAGER
-  companyDetails?: ICompanyDetails;
+  companyDetails?: ICompanyDetails; // Only for COMPANY_MANAGER
+  managedCompanyManagers?: string[]; // For GROUP_MANAGER & BANK_MANAGER
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -47,8 +48,8 @@ export class User implements IUser {
   phoneNumber: string;
   profile?: string;
   role: UserRole;
-  // Only for COMPANY_MANAGER
-  companyDetails?: ICompanyDetails;
+  companyDetails?: ICompanyDetails; // Only for COMPANY_MANAGER
+  managedCompanyManagers?: string[]; // For GROUP_MANAGER & BANK_MANAGER
   createdAt?: Date;
   updatedAt?: Date;
 
@@ -68,6 +69,7 @@ export class User implements IUser {
     this.profile = input.profile;
     this.role = input.role;
     this.companyDetails = input.companyDetails;
+    this.managedCompanyManagers = input.managedCompanyManagers;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
   }

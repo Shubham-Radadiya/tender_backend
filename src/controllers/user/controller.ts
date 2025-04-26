@@ -53,7 +53,18 @@ export default class Controller {
       gstNumber: Joi.string(),
       ifscCode: Joi.string(),
       website: Joi.string(),
+      annualTenderCap: Joi.number(),
     }).optional(),
+  }).custom((value, helpers) => {
+    if (
+      value.role === "COMPANY_MANAGER" &&
+      (!value.companyDetails || value.companyDetails.annualTenderCap == null)
+    ) {
+      return helpers.error("any.custom", {
+        message: `"annualTenderCap" is required inside companyDetails when role is COMPANY_MANAGER`,
+      });
+    }
+    return value;
   });
 
   private readonly updateUserSchema = Joi.object({
@@ -89,6 +100,7 @@ export default class Controller {
       gstNumber: Joi.string(),
       ifscCode: Joi.string(),
       website: Joi.string(),
+      annualTenderCap: Joi.number(),
     }).optional(),
   });
 
@@ -120,6 +132,9 @@ export default class Controller {
       }
 
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IUser = await this.createUserSchema
         .validateAsync(payload)
         .then((value) => {

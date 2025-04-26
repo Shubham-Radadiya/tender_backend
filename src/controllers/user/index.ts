@@ -1,5 +1,6 @@
 import { Router } from "express";
 import Controller from "./controller";
+import { validateIsAdmin } from "../../middleware/validateIsAdmin";
 
 export default class User extends Controller {
   public router = Router();
@@ -10,7 +11,7 @@ export default class User extends Controller {
 
   private initializeRoutes() {
     this.router.get("/", this.get);
-    this.router.post("/", this.createUser);
+    this.router.post("/", validateIsAdmin, this.createUser);
     this.router.put("/:id", this.updateUser);
     this.router.delete("/:id", this.deleteUser);
   }

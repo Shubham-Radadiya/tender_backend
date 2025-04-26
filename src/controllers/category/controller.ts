@@ -44,6 +44,9 @@ export default class Controller {
   protected readonly createCategory = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: ICategory = await this.createCategorySchema
         .validateAsync(payload)
         .then((value) => {
@@ -81,7 +84,9 @@ export default class Controller {
     try {
       const categoryId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: ICategory = await this.updateCategorySchema
         .validateAsync(payload)
         .then((value) => {

@@ -21,8 +21,9 @@ const CompanyDetailsSchema = new Schema(
     gstNumber: String,
     ifscCode: String,
     website: String,
+    annualTenderCap: Number,
   },
-  { _id: false } // Embedded, no need for its own _id
+  { _id: false }
 );
 
 const user = new Schema<IUser>(
@@ -46,6 +47,12 @@ const user = new Schema<IUser>(
       type: CompanyDetailsSchema,
       default: undefined, // So it stays empty unless filled
     },
+    managedCompanyManagers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User", // Field for Group_manager and Bank_Manager.
+      },
+    ],
   },
   { timestamps: true }
 );

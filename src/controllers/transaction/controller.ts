@@ -3,7 +3,15 @@ import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
 import { SHA256 } from "crypto-js";
-import { createTransaction, deleteTransactionById, getTransaction, getTransactionById, ITransaction, Transaction, updateTransaction } from "../../modules/transaction";
+import {
+  createTransaction,
+  deleteTransactionById,
+  getTransaction,
+  getTransactionById,
+  ITransaction,
+  Transaction,
+  updateTransaction,
+} from "../../modules/transaction";
 
 export default class Controller {
   private readonly createTransactionSchema = Joi.object({
@@ -87,11 +95,11 @@ export default class Controller {
     try {
       const transactionId = req.params.id;
       if (transactionId) {
-        const transaction = await getTransactionById(transactionId)
+        const transaction = await getTransactionById(transactionId);
         res.status(200).json({ message: "Transaction Listed", transaction });
         return;
       }
-      const transactionList = await getTransaction()
+      const transactionList = await getTransaction();
       res.status(200).json({ message: "Transaction Listed", transactionList });
       return;
     } catch (error) {
@@ -101,11 +109,17 @@ export default class Controller {
       });
       return;
     }
-  }
+  };
 
-  protected readonly createTransaction = async (req: Request, res: Response) => {
+  protected readonly createTransaction = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: ITransaction = await this.createTransactionSchema
         .validateAsync(payload)
         .then((value) => {
@@ -125,7 +139,9 @@ export default class Controller {
         return;
       }
 
-      const newTransaction = await createTransaction(new Transaction({ ...payloadValue }));
+      const newTransaction = await createTransaction(
+        new Transaction({ ...payloadValue })
+      );
       res.status(201).json(newTransaction);
       return;
     } catch (error) {
@@ -137,11 +153,16 @@ export default class Controller {
     }
   };
 
-  protected readonly updateTransaction = async (req: Request, res: Response) => {
+  protected readonly updateTransaction = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
       const transactionId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: ITransaction = await this.updateTransactionSchema
         .validateAsync(payload)
         .then((value) => {
@@ -178,7 +199,10 @@ export default class Controller {
     }
   };
 
-  protected readonly deleteTransaction = async (req: Request, res: Response) => {
+  protected readonly deleteTransaction = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
       const transactionId = req.params.id;
       const existingTransaction = await getTransactionById(transactionId);

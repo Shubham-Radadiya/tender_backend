@@ -6,12 +6,12 @@ import {
   IUser,
   User,
   getUserById,
-  createUser,
   updateUser,
-  deleteUserById,
   getUser,
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
+import { Types } from "mongoose";
+import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
 
 export default class Controller {
   private readonly updateUserSchema = Joi.object({
@@ -49,12 +49,17 @@ export default class Controller {
       website: Joi.string(),
     }).optional(),
   });
+  private readonly assignCompanyManagersSchema = Joi.object({
+    companyManagerIds: Joi.array().items(Joi.string()).min(1).required(),
+  });
 
   protected readonly update = async (req: Request, res: Response) => {
     try {
       const userId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IUser = await this.updateUserSchema
         .validateAsync(payload)
         .then((value) => {
@@ -105,6 +110,138 @@ export default class Controller {
     } catch (error) {
       console.log("Error in getting the Company", error);
       res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
+  protected readonly assignCompanyManagersToGroupManager = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
+      const payloadValue = await this.assignCompanyManagersSchema
+        .validateAsync(payload)
+        .then((value) => {
+          console.log("VALUE", value);
+          return value;
+        })
+        .catch((e) => {
+          console.log(e);
+          if (isError(e)) {
+            return res.status(422).json(e);
+          } else {
+            return res.status(422).json({ message: e.message });
+          }
+        });
+      console.log("payloadValue", payloadValue);
+      if (!payloadValue) {
+        return;
+      }
+      console.log("Worked");
+
+      const groupManagerId = req.params.GmId;
+      const groupManager = await getUserById(groupManagerId);
+      if (!groupManager) {
+        res.status(404).json({ message: "Group Manager not found" });
+        return;
+      }
+      if (groupManager.role !== UserRole.GROUP_MANAGER) {
+        res.status(400).json({ message: "User is not a Group Manager" });
+        return;
+      }
+
+      const companyManagers = await checkCompanyManagers(
+        payloadValue.companyManagerIds
+      );
+
+      if (companyManagers.length !== payloadValue?.companyManagerIds.length) {
+        res
+          .status(404)
+          .json({ message: "One or more Company Managers not found" });
+        return;
+      }
+
+      groupManager.managedCompanyManagers = [
+        ...new Set([
+          ...groupManager.managedCompanyManagers,
+          ...payloadValue.companyManagerIds,
+        ]),
+      ];
+      const updatedGroupManager = await updateUser(groupManager);
+
+      res.status(200).json(updatedGroupManager);
+      return;
+    } catch (error) {
+      console.log("Error in assignCompanyManagersToGroupManager:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+      return;
+    }
+  };
+  protected readonly assignCompanyManagersToBankManager = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
+      const payloadValue = await this.assignCompanyManagersSchema
+        .validateAsync(payload)
+        .then((value) => {
+          return value;
+        })
+        .catch((e) => {
+          console.log(e);
+          if (isError(e)) {
+            return res.status(422).json(e);
+          } else {
+            return res.status(422).json({ message: e.message });
+          }
+        });
+      if (!payloadValue) {
+        return;
+      }
+
+      const bankManagerId = req.params.BmId;
+      const bankManager = await getUserById(bankManagerId);
+      if (!bankManager) {
+        res.status(404).json({ message: "Bank Manager not found" });
+        return;
+      }
+      if (bankManager.role !== UserRole.BANK_MANAGER) {
+        res.status(400).json({ message: "User is not a Bank Manager" });
+        return;
+      }
+
+      const companyManagers = await checkCompanyManagers(
+        payloadValue.companyManagerIds
+      );
+
+      if (companyManagers.length !== payloadValue?.companyManagerIds.length) {
+        res
+          .status(404)
+          .json({ message: "One or more Company Managers not found" });
+        return;
+      }
+
+      bankManager.managedCompanyManagers = [
+        ...new Set([
+          ...bankManager.managedCompanyManagers,
+          ...payloadValue.companyManagerIds,
+        ]),
+      ];
+      const updatedBankManager = await updateUser(bankManager);
+
+      res.status(200).json(updatedBankManager);
+      return;
+    } catch (error) {
+      console.log("Error in assignCompanyManagersToBankManager:", error);
+      res.status(500).json({ message: "Internal Server Error" });
       return;
     }
   };

@@ -3,7 +3,15 @@ import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
 import { SHA256 } from "crypto-js";
-import { createBill, deleteBillById, getBill, getBillById, IBill, Bill, updateBill } from "../../modules/bill";
+import {
+  createBill,
+  deleteBillById,
+  getBill,
+  getBillById,
+  IBill,
+  Bill,
+  updateBill,
+} from "../../modules/bill";
 
 export default class Controller {
   private readonly createBillSchema = Joi.object({
@@ -87,11 +95,11 @@ export default class Controller {
     try {
       const billId = req.params.id;
       if (billId) {
-        const bill = await getBillById(billId)
+        const bill = await getBillById(billId);
         res.status(200).json({ message: "Bill Listed", bill });
         return;
       }
-      const billList = await getBill()
+      const billList = await getBill();
       res.status(200).json({ message: "Bill Listed", billList });
       return;
     } catch (error) {
@@ -101,11 +109,14 @@ export default class Controller {
       });
       return;
     }
-  }
+  };
 
   protected readonly createBill = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IBill = await this.createBillSchema
         .validateAsync(payload)
         .then((value) => {
@@ -141,7 +152,9 @@ export default class Controller {
     try {
       const billId = req.params.id;
       const payload = req.body;
-
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
       const payloadValue: IBill = await this.updateBillSchema
         .validateAsync(payload)
         .then((value) => {
