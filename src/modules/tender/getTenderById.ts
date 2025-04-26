@@ -1,4 +1,5 @@
 import { Tender } from ".";
+import { TenderQuotationModel } from "../tenderQuotation/schema";
 import { TenderModel } from "./schema";
 
 /**
@@ -11,5 +12,32 @@ export const getTenderById = async (_id: string) => {
     .populate("category")
     .populate("department")
     .lean();
-  return tender ? new Tender(tender) : null;
+  if (!tender) return null;
+  const quotations = await TenderQuotationModel.find({ tenderId: _id })
+    .populate(
+      "companyId",
+      "firstName lastName email phoneNumber profile companyDetails"
+    )
+    .lean();
+
+  const enrichedQuotations = quotations.map((quotation) => {
+    const enrichedItemRates = quotation.itemRates.map((rate) => {
+      const itemDetail = tender.items.find(
+        (item: any) => item._id.toString() === rate.itemId.toString()
+      );
+      return {
+        ...rate,
+        itemDetail: itemDetail || null,
+      };
+    });
+    return {
+      ...quotation,
+      itemRates: enrichedItemRates,
+    };
+  });
+
+  return {
+    ...new Tender(tender),
+    quotations: enrichedQuotations,
+  };
 };

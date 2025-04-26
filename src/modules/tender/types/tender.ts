@@ -23,7 +23,7 @@ export interface ITender {
   }[];
   createdBy: string | IUser;
   status: Status;
-  assignedTo?: string | IUser;
+  // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
   history?: {
     action: string;
@@ -52,7 +52,7 @@ export class Tender implements ITender {
   }[];
   createdBy: string | IUser;
   status: Status;
-  assignedTo?: string | IUser;
+  // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
   history?: {
     action: string;
@@ -78,7 +78,7 @@ export class Tender implements ITender {
     this.items = input.items;
     this.createdBy = input.createdBy;
     this.status = input.status;
-    this.assignedTo = input.assignedTo;
+    // this.assignedTo = input.assignedTo;
     this.companyAssigned = input.companyAssigned;
     this.history = input.history
       ? input.history.map((h) => ({

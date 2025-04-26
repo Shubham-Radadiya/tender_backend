@@ -1,0 +1,46 @@
+import { Schema, model } from "mongoose";
+import { ITenderQuotation } from "../types";
+
+const tenderQuotation = new Schema<ITenderQuotation>(
+  {
+    tenderId: {
+      type: Schema.Types.ObjectId,
+      ref: "tender",
+    },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "user",
+    },
+    quotationNumber: {
+      type: Number,
+    },
+    tenderFee: {
+      type: Number,
+    },
+    emd: {
+      type: Number,
+    },
+    receipts: [
+      {
+        type: String,
+      },
+    ],
+    itemRates: [
+      {
+        itemId: {
+          type: Schema.Types.ObjectId,
+        },
+        rate: {
+          type: Number,
+        },
+        amount: Number,
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
+export const TenderQuotationModel = model<ITenderQuotation>(
+  "tenderQuotation",
+  tenderQuotation
+);

@@ -8,6 +8,7 @@ import {
   deleteTenderById,
   getTender,
   getTenderById,
+  getTenderForGM,
   ITender,
   Tender,
   updateTender,
@@ -52,6 +53,10 @@ export default class Controller {
     ),
   });
 
+  private readonly tenderGotToSchema = Joi.object({
+    companyAssigned: Joi.string().required(),
+  });
+
   protected readonly getTender = async (req: Request, res: Response) => {
     try {
       const tenderId = req.params.id;
@@ -62,6 +67,20 @@ export default class Controller {
       }
       const tenderList = await getTender();
       res.status(200).json({ message: "Tender Listed", tenderList });
+      return;
+    } catch (error) {
+      console.log("Error in getTender", error);
+      res.status(400).json({
+        error: error?.message,
+      });
+      return;
+    }
+  };
+
+  protected readonly getTenderForGM = async (req: Request, res: Response) => {
+    try {
+      const tenderList = await getTenderForGM();
+      res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
     } catch (error) {
       console.log("Error in getTender", error);
@@ -137,7 +156,7 @@ export default class Controller {
       }
 
       const mergedTender = {
-        ...existingTender.toJSON(),
+        ...existingTender,
         ...payloadValue,
       };
 
@@ -146,6 +165,45 @@ export default class Controller {
       return;
     } catch (error) {
       console.log("Error in updateTender", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
+  protected readonly tenderGotTo = async (req: Request, res: Response) => {
+    try {
+      const tenderId = req.params.id;
+      const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
+      const payloadValue: Partial<ITender> = await this.tenderGotToSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          res.status(422).json(isError(e) ? e : { message: e.message });
+          return null;
+        });
+
+      if (!payloadValue) return;
+
+      const existingTender = await getTenderById(tenderId);
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
+
+      const mergedTender = {
+        ...existingTender,
+        ...payloadValue,
+      };
+
+      const updated = await updateTender(new Tender(mergedTender));
+      res.status(200).json(updated);
+      return;
+    } catch (error) {
+      console.log("Error in Tender Got To", error);
       res.status(500).json({ message: error.message });
       return;
     }

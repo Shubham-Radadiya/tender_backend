@@ -10,7 +10,6 @@ import {
   getUser,
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
-import { Types } from "mongoose";
 import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
 
 export default class Controller {
@@ -137,11 +136,9 @@ export default class Controller {
             return res.status(422).json({ message: e.message });
           }
         });
-      console.log("payloadValue", payloadValue);
       if (!payloadValue) {
         return;
       }
-      console.log("Worked");
 
       const groupManagerId = req.params.GmId;
       const groupManager = await getUserById(groupManagerId);
@@ -167,8 +164,8 @@ export default class Controller {
 
       groupManager.managedCompanyManagers = [
         ...new Set([
-          ...groupManager.managedCompanyManagers,
-          ...payloadValue.companyManagerIds,
+          ...groupManager.managedCompanyManagers.map(String),
+          ...payloadValue.companyManagerIds.map(String),
         ]),
       ];
       const updatedGroupManager = await updateUser(groupManager);
@@ -231,8 +228,8 @@ export default class Controller {
 
       bankManager.managedCompanyManagers = [
         ...new Set([
-          ...bankManager.managedCompanyManagers,
-          ...payloadValue.companyManagerIds,
+          ...bankManager.managedCompanyManagers.map(String),
+          ...payloadValue.companyManagerIds.map(String),
         ]),
       ];
       const updatedBankManager = await updateUser(bankManager);

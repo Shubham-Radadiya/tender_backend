@@ -12,6 +12,7 @@ import Department from "./controllers/department";
 import Image from "./controllers/image";
 import Tender from "./controllers/tender";
 import Company from "./controllers/company";
+import TenderQuotation from "./controllers/tenderQuotation";
 
 export default class App {
   public static instance: express.Application;
@@ -58,6 +59,11 @@ export default class App {
       new Department().router
     );
     this.instance.use("/tender", validateAuthIdToken, new Tender().router);
+    this.instance.use(
+      "/tenderQuotation",
+      validateAuthIdToken,
+      new TenderQuotation().router
+    );
     this.instance.use("/company", validateAuthIdToken, new Company().router);
     this.instance.use("/image", validateAuthIdToken, new Image().router);
   }

@@ -33,8 +33,8 @@ const tender = new Schema<ITender>(
       enum: Object.values(Status),
       default: Status.GM_PENDING,
     },
-    assignedTo: { type: Schema.Types.ObjectId, ref: "User" }, // Group Manager
-    companyAssigned: { type: Schema.Types.ObjectId, ref: "User" }, // Company Manager
+    // assignedTo: { type: Schema.Types.ObjectId, ref: "User" }, // Group Manager
+    companyAssigned: { type: Schema.Types.ObjectId, ref: "user" }, // Company Manager
     history: [
       {
         action: String,
