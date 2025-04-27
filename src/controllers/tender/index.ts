@@ -14,6 +14,7 @@ export default class Tender extends Controller {
     this.router.get("/:id", this.getTender);
     this.router.post("/", this.createTender);
     this.router.put("/:id", this.updateTender);
+    this.router.put("/accept/:id", this.tenderAccepted);
     this.router.put("/gotTo/:id", this.tenderGotTo);
     this.router.delete("/:id", this.deleteTender);
   }

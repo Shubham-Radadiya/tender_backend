@@ -3,8 +3,8 @@ import { ITender } from "../types";
 
 export enum Status {
   GM_PENDING = "GM_PENDING",
-  ACCEPTED = "ACCEPTED",
-  DECLINED = "DECLINED",
+  GM_ACCEPTED = "GM_ACCEPTED",
+  GM_DECLINED = "GM_DECLINED",
   TM_COMPLETED = "TM_COMPLETED",
   CM_WORKING = "CM_WORKING",
 }
@@ -42,6 +42,7 @@ const tender = new Schema<ITender>(
         date: Date,
       },
     ],
+    declineReason: { type: String },
   },
   { timestamps: true }
 );

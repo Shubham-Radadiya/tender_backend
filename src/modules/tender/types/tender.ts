@@ -30,6 +30,7 @@ export interface ITender {
     by: string | IUser;
     date: Date;
   }[];
+  declineReason: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -59,6 +60,7 @@ export class Tender implements ITender {
     by: string | IUser;
     date: Date;
   }[];
+  declineReason: string;
   createdAt?: Date;
   updatedAt?: Date;
 
@@ -87,6 +89,7 @@ export class Tender implements ITender {
           date: h.date,
         }))
       : [];
+    this.declineReason = input.declineReason;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
   }

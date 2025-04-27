@@ -13,6 +13,7 @@ import {
   Tender,
   updateTender,
 } from "../../modules/tender";
+import { Status } from "../../modules/tender/schema";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -55,6 +56,17 @@ export default class Controller {
 
   private readonly tenderGotToSchema = Joi.object({
     companyAssigned: Joi.string().required(),
+  });
+
+  private readonly tenderAcceptedSchema = Joi.object({
+    status: Joi.string().valid("GM_ACCEPTED", "GM_DECLINED").required(),
+    declineReason: Joi.when("status", {
+      is: "GM_DECLINED",
+      then: Joi.string().required().messages({
+        "any.required": "Reason is required when status is DECLINED",
+      }),
+      otherwise: Joi.optional(),
+    }),
   });
 
   protected readonly getTender = async (req: Request, res: Response) => {
@@ -204,6 +216,49 @@ export default class Controller {
       return;
     } catch (error) {
       console.log("Error in Tender Got To", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
+  protected readonly tenderAccepted = async (req: Request, res: Response) => {
+    try {
+      const tenderId = req.params.id;
+      const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
+      const payloadValue: Partial<ITender> = await this.tenderAcceptedSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          res.status(422).json(isError(e) ? e : { message: e.message });
+          return null;
+        });
+
+      if (!payloadValue) return;
+
+      const existingTender = await getTenderById(tenderId);
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
+
+      const mergedTender = {
+        ...existingTender,
+        status: payloadValue?.status,
+        declineReason:
+          payloadValue?.status === "GM_DECLINED"
+            ? payloadValue?.declineReason
+            : "",
+      };
+
+      const updated = await updateTender(new Tender(mergedTender));
+      res.status(200).json(updated);
+      return;
+    } catch (error) {
+      console.log("Error in Tender Accepted", error);
       res.status(500).json({ message: error.message });
       return;
     }

@@ -21,6 +21,7 @@ import {
   TenderQuotation,
   updateTenderQuotation,
 } from "../../modules/tenderQuotation";
+import { getUserById } from "../../modules/user";
 
 export default class Controller {
   private readonly createTenderQuotationSchema = Joi.object({
@@ -85,7 +86,18 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
+      let totalSpend = 0;
+      payloadValue.itemRates.map((item) => {
+        totalSpend += item.amount;
+      });
+      const companyData = await getUserById(payloadValue?.companyId.toString());
 
+      if (totalSpend > companyData.companyDetails.annualTenderCap) {
+        res.status(422).json({
+          message: `You Can Only Spend ${companyData.companyDetails.annualTenderCap}`,
+        });
+        return;
+      }
       const newQuotation = await createTenderQuotation(
         new TenderQuotation({ ...payloadValue })
       );
