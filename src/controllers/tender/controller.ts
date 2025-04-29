@@ -2,13 +2,12 @@ import { Response } from "express";
 import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
-import { SHA256 } from "crypto-js";
 import {
   createTender,
   deleteTenderById,
   getTender,
   getTenderById,
-  getTenderForGM,
+  getTenderByStatus,
   ITender,
   Tender,
   updateTender,
@@ -91,11 +90,30 @@ export default class Controller {
 
   protected readonly getTenderForGM = async (req: Request, res: Response) => {
     try {
-      const tenderList = await getTenderForGM();
+      const tenderList = await getTenderByStatus("GM_PENDING");
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
     } catch (error) {
       console.log("Error in getTender", error);
+      res.status(400).json({
+        error: error?.message,
+      });
+      return;
+    }
+  };
+
+  protected readonly getTenderByStatus = async (req: Request, res: Response) => {
+    try {
+      const status = req.query.status
+      if (!status) {
+        res.status(422).json({ message: "Status is required" });
+        return;
+      }
+      const tenderList = await getTenderByStatus(status.toString());
+      res.status(200).json({ message: "Tender List For GM", tenderList });
+      return;
+    } catch (error) {
+      console.log("Error in getTenderByStatus", error);
       res.status(400).json({
         error: error?.message,
       });
