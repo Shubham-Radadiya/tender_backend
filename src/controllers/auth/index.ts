@@ -11,6 +11,8 @@ export default class Auth extends Controller {
 
   private initializeRoutes() {
     this.router.post("/", this.login);
+    this.router.post("/forgotPassword", this.forgotPassword);
+    this.router.post("/verifyOtp", this.verifyOtp);
     this.router.get("/addTestUsers", this.addUsers);
     this.router.post("/resetPassword", validateAuthIdToken, this.resetPassword);
   }

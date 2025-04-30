@@ -8,7 +8,7 @@ import {
   deleteTenderById,
   getTender,
   getTenderById,
-  getTenderForGM,
+  // getTenderForGM,
   ITender,
   Tender,
   updateTender,

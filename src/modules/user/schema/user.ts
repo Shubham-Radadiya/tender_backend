@@ -53,6 +53,8 @@ const user = new Schema<IUser>(
         ref: "User", // Field for Group_manager and Bank_Manager.
       },
     ],
+    otp: { type: String, default: null },
+    otpExpiry: { type: Date, default: null },
   },
   { timestamps: true }
 );

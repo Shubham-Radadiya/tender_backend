@@ -33,6 +33,8 @@ export interface IUser {
   managedCompanyManagers?: string[]; // For GROUP_MANAGER & BANK_MANAGER
   createdAt?: Date;
   updatedAt?: Date;
+  otp?: string;
+  otpExpiry?: Date;
 }
 
 export class User implements IUser {

@@ -2,10 +2,11 @@ import { Response } from "express";
 import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
-import { AES, SHA256 } from "crypto-js";
+import { SHA256 } from "crypto-js";
 import {
   IUser,
   User,
+  createOTPAndUpdateUser,
   createUser,
   getPopulatedUser,
   getUserByEmail,
@@ -33,6 +34,53 @@ export default class Controller {
         return SHA256(v).toString();
       }),
   });
+  private readonly forgotPasswordSchema = Joi.object({
+    email: Joi.string()
+      .email({ tlds: { allow: false } })
+      .required()
+      .external(async (v: string) => {
+        const user: IUser = await getUserByEmail(v);
+        if (!user) {
+          throw new Error("This email address is does not exists.");
+        }
+        return v;
+      }),
+  });
+  private readonly verifyOtpSchema = Joi.object({
+    email: Joi.string()
+      .email({ tlds: { allow: false } })
+      .required()
+      .messages({
+        "string.base": "Email must be a string.",
+        "string.email": "Email must be a valid email address.",
+        "any.required": "Email is required.",
+      }),
+    otp: Joi.number().integer().min(100000).max(999999).required().messages({
+      "number.base": "OTP must be a number.",
+      "number.min": "OTP must be a 6-digit number.",
+      "number.max": "OTP must be a 6-digit number.",
+      "any.required": "OTP is required.",
+    }),
+    newPassword: Joi.string()
+      .required()
+      .min(6)
+      .custom((v) => {
+        return SHA256(v).toString();
+      }),
+  }).external(async (value) => {
+    const user: IUser = await UserModel.findOne({
+      email: value.email,
+      otp: value.otp,
+      otpExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      throw new Error("Invalid OTP or email, or OTP has expired.");
+    }
+
+    return value;
+  });
+
   private readonly resetPasswordSchema = Joi.object({
     email: Joi.string()
       .email({ tlds: { allow: false } })
@@ -99,6 +147,89 @@ export default class Controller {
         .setHeader("x-auth-token", token)
         .status(200)
         .json({ ...populatedUser, token });
+      return;
+    } catch (error) {
+      console.log("Error in login", error);
+      res.status(500).json({
+        error: error?.message,
+      });
+      return;
+    }
+  };
+
+  protected readonly forgotPassword = async (req: Request, res: Response) => {
+    try {
+      const payload = req.body;
+
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+        return;
+      }
+
+      const payloadValue: IUser = await this.forgotPasswordSchema.validateAsync(
+        payload
+      );
+
+      if (!payloadValue) {
+        res.status(422).json({ message: "Invalid email format" });
+        return;
+      }
+
+      const user: IUser = await createOTPAndUpdateUser(payloadValue.email);
+
+      if (!user) {
+        res.status(422).json({ message: "User not found." });
+        return;
+      }
+
+      // Send OTP to user's email (Add the actual email sending logic)
+      // Example: await sendOtpEmail(user.email, user.otp);
+      res
+        .status(200)
+        .json({ message: "OTP sent to your email.", otp: user.otp });
+      return;
+    } catch (error) {
+      console.error("Error in forgotPassword", error);
+      res.status(500).json({ error: error?.message });
+      return;
+    }
+  };
+
+  protected readonly verifyOtp = async (req: Request, res: Response) => {
+    try {
+      const { email, otp, newPassword } = req.body;
+
+      if (!email || !otp || !newPassword) {
+        res
+          .status(400)
+          .json({ message: "Email, OTP, and new password are required." });
+        return;
+      }
+
+      const payloadValue = await this.verifyOtpSchema.validateAsync({
+        email,
+        otp,
+        newPassword,
+      });
+
+      if (!payloadValue) {
+        res.status(422).json({ message: "Invalid email format" });
+        return;
+      }
+
+      const user = await UserModel.findOne({ email, otp });
+
+      if (!user || user.otpExpiry.getTime() < Date.now()) {
+        res.status(422).json({ message: "Invalid or expired OTP." });
+        return;
+      }
+
+      user.password = payloadValue.newPassword;
+      user.otp = null;
+      user.otpExpiry = null;
+      await user.save();
+
+      res.status(200).json({ message: "Password reset successful." });
       return;
     } catch (error) {
       console.log("Error in login", error);
