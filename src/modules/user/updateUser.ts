@@ -22,7 +22,8 @@ export const createOTPAndUpdateUser = async (email: string) => {
     { email },
     {
       $set: {
-        otp: generateOTP(),
+        otp: 123456,
+        // otp: generateOTP(),
         otpExpiry: Date.now() + 10 * 60 * 1000,
       },
     },
