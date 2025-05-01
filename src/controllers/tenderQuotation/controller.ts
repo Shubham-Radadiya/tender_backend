@@ -13,6 +13,7 @@ import {
   Tender,
   updateTender,
 } from "../../modules/tender";
+import { Status } from "../../modules/tender/schema";
 import {
   createTenderQuotation,
   deleteTenderQuotationById,
@@ -20,6 +21,7 @@ import {
   ITenderQuotation,
   TenderQuotation,
   updateTenderQuotation,
+  getTenderQuotationsByTenderId,
 } from "../../modules/tenderQuotation";
 import { getUserById } from "../../modules/user";
 
@@ -86,22 +88,79 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
-      let totalSpend = 0;
-      payloadValue.itemRates.map((item) => {
-        totalSpend += item.amount;
-      });
-      const companyData = await getUserById(payloadValue?.companyId.toString());
 
-      if (totalSpend > companyData.companyDetails.annualTenderCap) {
-        res.status(422).json({
-          message: `You Can Only Spend ${companyData.companyDetails.annualTenderCap}`,
+      // Check if tender exists and is in GM_ACCEPTED state
+      const existingTender = await getTenderById(payloadValue.tenderId.toString());
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
+
+      if (existingTender.status !== Status.GM_ACCEPTED) {
+        res.status(400).json({ 
+          message: "Tender must be in GM_ACCEPTED state to create quotation" 
         });
         return;
       }
+
+      // Calculate total quotation amount
+      let totalQuotationAmount = 0;
+      payloadValue.itemRates.forEach((item) => {
+        totalQuotationAmount += item.amount || 0;
+      });
+
+      // Get company data and check annual tender cap
+      const companyData = await getUserById(payloadValue.companyId.toString());
+      if (!companyData) {
+        res.status(404).json({ message: "Company not found" });
+        return;
+      }
+
+      if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
+        res.status(422).json({
+          message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
+        });
+        return;
+      }
+
+      // Get existing quotations for this tender
+      const existingQuotations = await getTenderQuotationsByTenderId(payloadValue.tenderId.toString());
+      
+      // If this is not the first quotation, check against winning company's quotation
+      if (existingQuotations.length > 0) {
+        // Find winning company's quotation
+        const winningCompanyQuotation = existingQuotations.find(
+          q => q.companyId.toString() === existingTender.companyAssigned?.toString()
+        );
+
+        if (winningCompanyQuotation) {
+          // Calculate winning company's total amount
+          let winningCompanyTotal = 0;
+          winningCompanyQuotation.itemRates.forEach(item => {
+            winningCompanyTotal += item.amount || 0;
+          });
+
+          // If current company is not the winning company, validate their quotation amount
+          if (payloadValue.companyId.toString() !== existingTender.companyAssigned?.toString()) {
+            if (totalQuotationAmount < winningCompanyTotal) {
+              res.status(422).json({
+                message: `Quotation amount (${totalQuotationAmount}) cannot be less than winning company's amount (${winningCompanyTotal})`,
+              });
+              return;
+            }
+          }
+        }
+      }
+
+      // Create the quotation
       const newQuotation = await createTenderQuotation(
         new TenderQuotation({ ...payloadValue })
       );
-      res.status(201).json(newQuotation);
+
+      res.status(201).json({
+        message: "Quotation created successfully",
+        quotation: newQuotation
+      });
       return;
     } catch (error) {
       console.log("Error in createTenderQuotation ", error);

@@ -13,6 +13,7 @@ import {
   updateTender,
 } from "../../modules/tender";
 import { Status } from "../../modules/tender/schema";
+import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -148,7 +149,16 @@ export default class Controller {
       }
 
       const newTender = await createTender(
-        new Tender({ ...payloadValue, createdBy: userId })
+        new Tender({ 
+          ...payloadValue, 
+          createdBy: userId,
+          status: Status.GM_PENDING,
+          history: [{
+            action: "Tender created and assigned to Group Manager",
+            by: userId,
+            date: new Date()
+          }]
+        })
       );
       res.status(201).json(newTender);
       return;
@@ -227,6 +237,14 @@ export default class Controller {
       const mergedTender = {
         ...existingTender,
         ...payloadValue,
+        history: [
+          ...(existingTender.history || []),
+          {
+            action: `Winning company ${payloadValue.companyAssigned} assigned by Group Manager`,
+            by: req.authUser._id,
+            date: new Date()
+          }
+        ]
       };
 
       const updated = await updateTender(new Tender(mergedTender));
@@ -263,6 +281,10 @@ export default class Controller {
         return;
       }
 
+      const action = payloadValue?.status === "GM_ACCEPTED" 
+        ? "Tender accepted by Group Manager"
+        : `Tender declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
+
       const mergedTender = {
         ...existingTender,
         status: payloadValue?.status,
@@ -270,6 +292,14 @@ export default class Controller {
           payloadValue?.status === "GM_DECLINED"
             ? payloadValue?.declineReason
             : "",
+        history: [
+          ...(existingTender.history || []),
+          {
+            action,
+            by: req.authUser._id,
+            date: new Date()
+          }
+        ]
       };
 
       const updated = await updateTender(new Tender(mergedTender));
@@ -296,6 +326,70 @@ export default class Controller {
       return;
     } catch (error) {
       console.log("Error in deleteTender", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
+  protected readonly approveTender = async (req: Request, res: Response) => {
+    try {
+      const tenderId = req.params.id;
+      
+      // Get the tender
+      const existingTender = await getTenderById(tenderId);
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
+
+      // Verify tender is in GM_ACCEPTED state
+      if (existingTender.status !== Status.GM_ACCEPTED) {
+        res.status(400).json({ 
+          message: "Tender must be in GM_ACCEPTED state before approval" 
+        });
+        return;
+      }
+
+      // Verify that a company has been assigned
+      if (!existingTender.companyAssigned) {
+        res.status(400).json({ 
+          message: "A winning company must be assigned before approval" 
+        });
+        return;
+      }
+
+      // Get all quotations for this tender
+      const quotations = await getTenderQuotationsByTenderId(tenderId);
+      if (quotations.length === 0) {
+        res.status(400).json({ 
+          message: "At least one quotation must exist before approval" 
+        });
+        return;
+      }
+
+      // Update tender status to GM_APPROVED
+      const updatedTender = await updateTender(
+        new Tender({
+          ...existingTender,
+          status: Status.GM_APPROVED,
+          history: [
+            ...(existingTender.history || []),
+            {
+              action: `Tender approved and assigned to company ${existingTender.companyAssigned}`,
+              by: req.authUser._id,
+              date: new Date(),
+            },
+          ],
+        })
+      );
+
+      res.status(200).json({
+        message: "Tender approved successfully",
+        tender: updatedTender
+      });
+      return;
+    } catch (error) {
+      console.log("Error in approveTender", error);
       res.status(500).json({ message: error.message });
       return;
     }

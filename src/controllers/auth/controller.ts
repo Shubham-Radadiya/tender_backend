@@ -11,6 +11,7 @@ import {
   getPopulatedUser,
   getUserByEmail,
   updateUser,
+  getUserById,
 } from "../../modules/user";
 import { generateToken } from "../../helper/jwtToken";
 import { UserModel, UserRole } from "../../modules/user/schema";
@@ -296,6 +297,116 @@ export default class Controller {
         message: "Something happened wrong try again after sometime.",
         error: _get(error, "message"),
       });
+    }
+  };
+
+  protected readonly logout = async (req: Request, res: Response) => {
+    try {
+      // Clear the auth cookie
+      res.clearCookie('auth');
+      // Remove the auth token from header
+      res.removeHeader('x-auth-token');
+      
+      res.status(200).json({ message: "Logged out successfully" });
+      return;
+    } catch (error) {
+      console.log("Error in logout", error);
+      res.status(500).json({
+        error: error?.message,
+      });
+      return;
+    }
+  };
+
+  protected readonly impersonate = async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const adminUser = req.authUser;
+
+      // Check if the requesting user is an admin
+      if (adminUser.role !== UserRole.ADMIN) {
+        res.status(403).json({ message: "Only admin can impersonate users" });
+        return;
+      }
+
+      // Get the user to impersonate
+      const userToImpersonate = await getUserById(userId);
+      if (!userToImpersonate) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      // Generate token for the impersonated user
+      const token = await generateToken(userToImpersonate._id);
+      
+      // Get populated user data
+      const populatedUser = await getPopulatedUser(userToImpersonate._id);
+
+      // Set the impersonation cookie and token
+      res
+        .cookie("auth", token, {
+          expires: new Date("12/31/2100"),
+          signed: true,
+        })
+        .cookie("impersonating", "true", {
+          expires: new Date("12/31/2100"),
+          signed: true,
+        })
+        .setHeader("x-auth-token", token)
+        .status(200)
+        .json({ 
+          ...populatedUser, 
+          token,
+          isImpersonating: true,
+          originalAdminId: adminUser._id 
+        });
+      return;
+    } catch (error) {
+      console.log("Error in impersonate", error);
+      res.status(500).json({
+        error: error?.message,
+      });
+      return;
+    }
+  };
+
+  protected readonly stopImpersonating = async (req: Request, res: Response) => {
+    try {
+      const adminUser = req.authUser;
+      
+      // Check if currently impersonating
+      if (!req.signedCookies.impersonating) {
+        res.status(400).json({ message: "Not currently impersonating any user" });
+        return;
+      }
+
+      // Generate token for the admin
+      const token = await generateToken(adminUser._id);
+      
+      // Get populated admin data
+      const populatedAdmin = await getPopulatedUser(adminUser._id);
+
+      // Clear impersonation cookie and set new admin token
+      res
+        .clearCookie("impersonating")
+        .cookie("auth", token, {
+          expires: new Date("12/31/2100"),
+          signed: true,
+        })
+        .setHeader("x-auth-token", token)
+        .status(200)
+        .json({ 
+          ...populatedAdmin, 
+          token,
+          isImpersonating: false 
+        });
+      return;
+    } catch (error) {
+      console.log("Error in stopImpersonating", error);
+      res.status(500).json({
+        error: error?.message,
+      });
+      return;
     }
   };
 

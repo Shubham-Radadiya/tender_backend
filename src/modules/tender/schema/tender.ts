@@ -5,8 +5,8 @@ export enum Status {
   GM_PENDING = "GM_PENDING",
   GM_ACCEPTED = "GM_ACCEPTED",
   GM_DECLINED = "GM_DECLINED",
-  TM_COMPLETED = "TM_COMPLETED",
-  CM_WORKING = "CM_WORKING",
+  GM_APPROVED = "GM_APPROVED",
+  TM_COMPLETED = "TM_COMPLETED"
 }
 
 const tender = new Schema<ITender>(
