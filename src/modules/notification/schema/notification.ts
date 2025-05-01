@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { INotification } from "../types/notification";
+import { INotification } from "../types";
 
 export enum NotificationType {
   TENDER_CREATED = "TENDER_CREATED",
@@ -10,15 +10,14 @@ export enum NotificationType {
 
 const notification = new Schema<INotification>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    tenderId: { type: Schema.Types.ObjectId, ref: "Tender", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    tenderId: { type: Schema.Types.ObjectId, ref: "Tender"},
     type: {
       type: String,
-      enum: Object.values(NotificationType),
-      required: true
+      enum: Object.values(NotificationType),      
     },
-    message: { type: String, required: true },
-    isRead: { type: Boolean, default: false },
+    message: { type: String},
+    isRead: { type: Boolean},
     readAt: { type: Date }
   },
   { timestamps: true }

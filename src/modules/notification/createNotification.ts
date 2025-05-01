@@ -1,5 +1,5 @@
 import { Notification } from ".";
-import { NotificationModel } from "./schema/notification";
+import { NotificationModel } from "./schema";
 
 /**
  * Create a new notification

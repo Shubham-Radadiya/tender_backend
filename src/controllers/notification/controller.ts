@@ -3,10 +3,7 @@ import { Request } from "../../request";
 import { getPaginatedNotifications } from "../../modules/notification/getPaginatedNotifications";
 
 export default class Controller {
-    protected readonly getPaginatedNotification = async (
-  req: Request,
-  res: Response
-) => {
+protected readonly getPaginatedNotification = async (req: Request, res: Response) => {
   try {
     const userId = req.authUser?._id;
     if (!userId) {
@@ -14,7 +11,7 @@ export default class Controller {
         success: false,
         message: "User not authenticated",
       });
-      return
+      return;
     }
 
     const page = parseInt(req.query.page as string) || 1;
@@ -26,13 +23,14 @@ export default class Controller {
       success: true,
       data: result,
     });
-    return
+    return;
   } catch (error) {
-     res.status(500).json({
+    console.log("Error in getNotification", error);
+    res.status(500).json({
       success: false,
       message: error.message || "Error fetching notifications",
     });
-    return
+    return;
   }
-}; 
+};
 }
