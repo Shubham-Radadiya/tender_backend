@@ -6,3 +6,5 @@ export * from "./createUser";
 export * from "./updateUser";
 export * from "./deleteUserById";
 export * from "./getPopulatedUser";
+export * from "./getGM";
+export * from "./getTM";

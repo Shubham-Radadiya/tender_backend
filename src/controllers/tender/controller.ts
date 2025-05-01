@@ -14,6 +14,9 @@ import {
 } from "../../modules/tender";
 import { Status } from "../../modules/tender/schema";
 import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
+import { NotificationType } from "../../modules/notification/schema/notification";
+import { sendNotification } from "../../helper/sendNotification";
+import { getGM, getTM } from "../../modules/user";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -149,8 +152,8 @@ export default class Controller {
       }
 
       const newTender = await createTender(
-        new Tender({ 
-          ...payloadValue, 
+        new Tender({
+          ...payloadValue,
           createdBy: userId,
           status: Status.GM_PENDING,
           history: [{
@@ -160,6 +163,16 @@ export default class Controller {
           }]
         })
       );
+
+      const gmData = await getGM()
+      // Send notification to GM
+      await sendNotification(
+        gmData._id,
+        newTender._id!,
+        NotificationType.TENDER_CREATED,
+        `New tender "${payloadValue.name}" has been created and assigned to you`
+      );
+
       res.status(201).json(newTender);
       return;
     } catch (error) {
@@ -182,9 +195,8 @@ export default class Controller {
         .validateAsync(payload)
         .then((value) => value)
         .catch((e) => {
-          console.log(e);
           res.status(422).json(isError(e) ? e : { message: e.message });
-          return null;
+          return
         });
 
       if (!payloadValue) return;
@@ -201,8 +213,34 @@ export default class Controller {
       };
 
       const updated = await updateTender(new Tender(mergedTender));
+
+      // Send notification to TM based on status
+      const tmId = existingTender.createdBy as string;
+      let notificationType: NotificationType;
+      let message: string;
+
+      switch (payloadValue.status) {
+        case Status.GM_ACCEPTED:
+          notificationType = NotificationType.TENDER_ACCEPTED;
+          message = `Tender "${existingTender.name}" has been accepted by GM`;
+          break;
+        case Status.GM_DECLINED:
+          notificationType = NotificationType.TENDER_DECLINED;
+          message = `Tender "${existingTender.name}" has been declined by GM`;
+          break;
+        case Status.GM_APPROVED:
+          notificationType = NotificationType.TENDER_APPROVED;
+          message = `Tender "${existingTender.name}" has been approved by GM`;
+          break;
+        default:
+          res.status(200).json(updated);
+          return
+      }
+
+      // await sendNotification(tmId, existingTender._id!, notificationType, message);
+
       res.status(200).json(updated);
-      return;
+      return
     } catch (error) {
       console.log("Error in updateTender", error);
       res.status(500).json({ message: error.message });
@@ -281,7 +319,7 @@ export default class Controller {
         return;
       }
 
-      const action = payloadValue?.status === "GM_ACCEPTED" 
+      const action = payloadValue?.status === "GM_ACCEPTED"
         ? "Tender accepted by Group Manager"
         : `Tender declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
 
@@ -303,6 +341,16 @@ export default class Controller {
       };
 
       const updated = await updateTender(new Tender(mergedTender));
+
+      const getTMData = await getTM()
+      const notificationType = payloadValue?.status === "GM_ACCEPTED" ? NotificationType.TENDER_ACCEPTED : NotificationType.TENDER_DECLINED
+      await sendNotification(
+        getTMData._id,
+        existingTender._id,
+        notificationType,
+        action
+      );
+
       res.status(200).json(updated);
       return;
     } catch (error) {
@@ -334,7 +382,7 @@ export default class Controller {
   protected readonly approveTender = async (req: Request, res: Response) => {
     try {
       const tenderId = req.params.id;
-      
+
       // Get the tender
       const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
@@ -344,16 +392,16 @@ export default class Controller {
 
       // Verify tender is in GM_ACCEPTED state
       if (existingTender.status !== Status.GM_ACCEPTED) {
-        res.status(400).json({ 
-          message: "Tender must be in GM_ACCEPTED state before approval" 
+        res.status(400).json({
+          message: "Tender must be in GM_ACCEPTED state before approval"
         });
         return;
       }
 
       // Verify that a company has been assigned
       if (!existingTender.companyAssigned) {
-        res.status(400).json({ 
-          message: "A winning company must be assigned before approval" 
+        res.status(400).json({
+          message: "A winning company must be assigned before approval"
         });
         return;
       }
@@ -361,8 +409,8 @@ export default class Controller {
       // Get all quotations for this tender
       const quotations = await getTenderQuotationsByTenderId(tenderId);
       if (quotations.length === 0) {
-        res.status(400).json({ 
-          message: "At least one quotation must exist before approval" 
+        res.status(400).json({
+          message: "At least one quotation must exist before approval"
         });
         return;
       }
@@ -381,6 +429,14 @@ export default class Controller {
             },
           ],
         })
+      );
+
+      const getTMData = await getTM()
+      await sendNotification(
+        getTMData._id,
+        existingTender._id,
+        NotificationType.TENDER_APPROVED,
+        `Tender approved by the Group Manager`
       );
 
       res.status(200).json({
