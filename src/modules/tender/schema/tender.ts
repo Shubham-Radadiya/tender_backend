@@ -6,7 +6,7 @@ export enum Status {
   GM_ACCEPTED = "GM_ACCEPTED",
   GM_DECLINED = "GM_DECLINED",
   GM_APPROVED = "GM_APPROVED",
-  TM_COMPLETED = "TM_COMPLETED"
+  TM_COMPLETED = "TM_COMPLETED",
 }
 
 const tender = new Schema<ITender>(
@@ -27,18 +27,18 @@ const tender = new Schema<ITender>(
         unit: { type: String },
       },
     ],
-    createdBy: { type: Schema.Types.ObjectId, ref: "User" }, // Tender Manager
+    createdBy: { type: Schema.Types.ObjectId, ref: "user" }, // Tender Manager
     status: {
       type: String,
       enum: Object.values(Status),
       default: Status.GM_PENDING,
     },
-    // assignedTo: { type: Schema.Types.ObjectId, ref: "User" }, // Group Manager
+    // assignedTo: { type: Schema.Types.ObjectId, ref: "user" }, // Group Manager
     companyAssigned: { type: Schema.Types.ObjectId, ref: "user" }, // Company Manager
     history: [
       {
         action: String,
-        by: { type: Schema.Types.ObjectId, ref: "User" },
+        by: { type: Schema.Types.ObjectId, ref: "user" },
         date: Date,
       },
     ],

@@ -1,5 +1,4 @@
 import { User } from ".";
-import { generateOTP } from "../../helper/utils";
 import { UserModel } from "./schema";
 
 /**

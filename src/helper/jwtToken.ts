@@ -1,9 +1,8 @@
 import jwt from "jsonwebtoken";
-import { IUser } from "../modules/user"; // Adjust path as needed
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key"; // Store securely
 
-export const generateToken = (userId) => {
+export const generateToken = (userId: string) => {
   const payload = {
     userId,
   };

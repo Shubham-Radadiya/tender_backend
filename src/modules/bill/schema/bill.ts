@@ -8,7 +8,7 @@ export enum Status {
 
 const bill = new Schema<IBill>(
   {
-    companyId: { type: Schema.Types.ObjectId, ref: "User" },
+    companyId: { type: Schema.Types.ObjectId, ref: "user" },
     tenderId: { type: Schema.Types.ObjectId, ref: "Tender" },
     amount: { type: Number },
     taxPercent: { type: Number },

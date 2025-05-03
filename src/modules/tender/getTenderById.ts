@@ -41,3 +41,11 @@ export const getTenderById = async (_id: string) => {
     quotations: enrichedQuotations,
   };
 };
+
+export const getTenderByCompany = async (companyAssigned: string) => {
+  const tender = await TenderModel.find({ companyAssigned })
+    .populate("category")
+    .populate("department")
+    .lean();
+  return tender ? tender.map((item) => new Tender(item)) : null;
+};

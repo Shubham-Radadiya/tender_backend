@@ -2,16 +2,10 @@ import { Response } from "express";
 import { Request } from "../../request";
 import Joi, { isError } from "joi";
 import { get as _get } from "lodash";
-import { SHA256 } from "crypto-js";
 import {
-  createTender,
-  deleteTenderById,
-  getTender,
   getTenderById,
   // getTenderForGM,
   ITender,
-  Tender,
-  updateTender,
 } from "../../modules/tender";
 import { Status } from "../../modules/tender/schema";
 import {
@@ -29,10 +23,6 @@ export default class Controller {
   private readonly createTenderQuotationSchema = Joi.object({
     tenderId: Joi.string().required(),
     companyId: Joi.string().required(),
-    quotationNumber: Joi.number().required(),
-    tenderFee: Joi.number().required(),
-    emd: Joi.number().required(),
-    receipts: Joi.array().items(Joi.string()).default([]),
     itemRates: Joi.array()
       .items(
         Joi.object({
@@ -90,15 +80,17 @@ export default class Controller {
       }
 
       // Check if tender exists and is in GM_ACCEPTED state
-      const existingTender = await getTenderById(payloadValue.tenderId.toString());
+      const existingTender = await getTenderById(
+        payloadValue.tenderId.toString()
+      );
       if (!existingTender) {
         res.status(404).json({ message: "Tender not found" });
         return;
       }
 
       if (existingTender.status !== Status.GM_ACCEPTED) {
-        res.status(400).json({ 
-          message: "Tender must be in GM_ACCEPTED state to create quotation" 
+        res.status(400).json({
+          message: "Tender must be in GM_ACCEPTED state to create quotation",
         });
         return;
       }
@@ -124,24 +116,31 @@ export default class Controller {
       }
 
       // Get existing quotations for this tender
-      const existingQuotations = await getTenderQuotationsByTenderId(payloadValue.tenderId.toString());
-      
+      const existingQuotations = await getTenderQuotationsByTenderId(
+        payloadValue.tenderId.toString()
+      );
+
       // If this is not the first quotation, check against winning company's quotation
       if (existingQuotations.length > 0) {
         // Find winning company's quotation
         const winningCompanyQuotation = existingQuotations.find(
-          q => q.companyId.toString() === existingTender.companyAssigned?.toString()
+          (q) =>
+            q.companyId.toString() ===
+            existingTender.companyAssigned?.toString()
         );
 
         if (winningCompanyQuotation) {
           // Calculate winning company's total amount
           let winningCompanyTotal = 0;
-          winningCompanyQuotation.itemRates.forEach(item => {
+          winningCompanyQuotation.itemRates.forEach((item) => {
             winningCompanyTotal += item.amount || 0;
           });
 
           // If current company is not the winning company, validate their quotation amount
-          if (payloadValue.companyId.toString() !== existingTender.companyAssigned?.toString()) {
+          if (
+            payloadValue.companyId.toString() !==
+            existingTender.companyAssigned?.toString()
+          ) {
             if (totalQuotationAmount < winningCompanyTotal) {
               res.status(422).json({
                 message: `Quotation amount (${totalQuotationAmount}) cannot be less than winning company's amount (${winningCompanyTotal})`,
@@ -159,7 +158,7 @@ export default class Controller {
 
       res.status(201).json({
         message: "Quotation created successfully",
-        quotation: newQuotation
+        quotation: newQuotation,
       });
       return;
     } catch (error) {

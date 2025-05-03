@@ -3,7 +3,7 @@ import { IParty } from "../types";
 
 const party = new Schema<IParty>(
   {
-    companyId: { type: Schema.Types.ObjectId, ref: "User" },
+    companyId: { type: Schema.Types.ObjectId, ref: "user" },
     firstName: { type: String },
     lastName: { type: String },
     phone: { type: String },

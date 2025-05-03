@@ -50,7 +50,7 @@ const user = new Schema<IUser>(
     managedCompanyManagers: [
       {
         type: Schema.Types.ObjectId,
-        ref: "User", // Field for Group_manager and Bank_Manager.
+        ref: "user", // Field for Group_manager and Bank_Manager.
       },
     ],
     otp: { type: String, default: null },

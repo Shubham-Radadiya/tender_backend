@@ -10,7 +10,7 @@ export enum PaymentMode {
 
 const transaction = new Schema<ITransaction>(
   {
-    companyId: { type: Schema.Types.ObjectId, ref: "User" },
+    companyId: { type: Schema.Types.ObjectId, ref: "user" },
     billId: { type: Schema.Types.ObjectId, ref: "Bill" },
     paymentMode: {
       type: String,

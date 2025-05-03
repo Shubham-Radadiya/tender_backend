@@ -303,10 +303,10 @@ export default class Controller {
   protected readonly logout = async (req: Request, res: Response) => {
     try {
       // Clear the auth cookie
-      res.clearCookie('auth');
+      res.clearCookie("auth");
       // Remove the auth token from header
-      res.removeHeader('x-auth-token');
-      
+      res.removeHeader("x-auth-token");
+
       res.status(200).json({ message: "Logged out successfully" });
       return;
     } catch (error) {
@@ -338,7 +338,7 @@ export default class Controller {
 
       // Generate token for the impersonated user
       const token = await generateToken(userToImpersonate._id);
-      
+
       // Get populated user data
       const populatedUser = await getPopulatedUser(userToImpersonate._id);
 
@@ -354,11 +354,11 @@ export default class Controller {
         })
         .setHeader("x-auth-token", token)
         .status(200)
-        .json({ 
-          ...populatedUser, 
+        .json({
+          ...populatedUser,
           token,
           isImpersonating: true,
-          originalAdminId: adminUser._id 
+          originalAdminId: adminUser._id,
         });
       return;
     } catch (error) {
@@ -370,19 +370,24 @@ export default class Controller {
     }
   };
 
-  protected readonly stopImpersonating = async (req: Request, res: Response) => {
+  protected readonly stopImpersonating = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
       const adminUser = req.authUser;
-      
+
       // Check if currently impersonating
       if (!req.signedCookies.impersonating) {
-        res.status(400).json({ message: "Not currently impersonating any user" });
+        res
+          .status(400)
+          .json({ message: "Not currently impersonating any user" });
         return;
       }
 
       // Generate token for the admin
       const token = await generateToken(adminUser._id);
-      
+
       // Get populated admin data
       const populatedAdmin = await getPopulatedUser(adminUser._id);
 
@@ -395,10 +400,10 @@ export default class Controller {
         })
         .setHeader("x-auth-token", token)
         .status(200)
-        .json({ 
-          ...populatedAdmin, 
+        .json({
+          ...populatedAdmin,
           token,
-          isImpersonating: false 
+          isImpersonating: false,
         });
       return;
     } catch (error) {

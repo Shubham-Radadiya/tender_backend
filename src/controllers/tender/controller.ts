@@ -6,6 +6,7 @@ import {
   createTender,
   deleteTenderById,
   getTender,
+  getTenderByCompany,
   getTenderById,
   getTenderByStatus,
   ITender,
@@ -92,7 +93,7 @@ export default class Controller {
     }
   };
 
-  protected readonly getTenderForGM = async (req: Request, res: Response) => {
+  protected readonly getTenderForGM = async (_req: Request, res: Response) => {
     try {
       const tenderList = await getTenderByStatus("GM_PENDING");
       res.status(200).json({ message: "Tender List For GM", tenderList });
@@ -106,9 +107,27 @@ export default class Controller {
     }
   };
 
-  protected readonly getTenderByStatus = async (req: Request, res: Response) => {
+  protected readonly getTenderForCM = async (req: Request, res: Response) => {
     try {
-      const status = req.query.status
+      const { id } = req.params;
+      const tenderList = await getTenderByCompany(id);
+      res.status(200).json({ message: "Tender List For CM", tenderList });
+      return;
+    } catch (error) {
+      console.log("Error in getTender", error);
+      res.status(400).json({
+        error: error?.message,
+      });
+      return;
+    }
+  };
+
+  protected readonly getTenderByStatus = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const status = req.query.status;
       if (!status) {
         res.status(422).json({ message: "Status is required" });
         return;
@@ -156,15 +175,17 @@ export default class Controller {
           ...payloadValue,
           createdBy: userId,
           status: Status.GM_PENDING,
-          history: [{
-            action: "Tender created and assigned to Group Manager",
-            by: userId,
-            date: new Date()
-          }]
+          history: [
+            {
+              action: "Tender created and assigned to Group Manager",
+              by: userId,
+              date: new Date(),
+            },
+          ],
         })
       );
 
-      const gmData = await getGM()
+      const gmData = await getGM();
       // Send notification to GM
       await sendNotification(
         gmData._id,
@@ -196,7 +217,7 @@ export default class Controller {
         .then((value) => value)
         .catch((e) => {
           res.status(422).json(isError(e) ? e : { message: e.message });
-          return
+          return;
         });
 
       if (!payloadValue) return;
@@ -234,13 +255,13 @@ export default class Controller {
           break;
         default:
           res.status(200).json(updated);
-          return
+          return;
       }
 
       // await sendNotification(tmId, existingTender._id!, notificationType, message);
 
       res.status(200).json(updated);
-      return
+      return;
     } catch (error) {
       console.log("Error in updateTender", error);
       res.status(500).json({ message: error.message });
@@ -280,9 +301,9 @@ export default class Controller {
           {
             action: `Winning company ${payloadValue.companyAssigned} assigned by Group Manager`,
             by: req.authUser._id,
-            date: new Date()
-          }
-        ]
+            date: new Date(),
+          },
+        ],
       };
 
       const updated = await updateTender(new Tender(mergedTender));
@@ -319,9 +340,10 @@ export default class Controller {
         return;
       }
 
-      const action = payloadValue?.status === "GM_ACCEPTED"
-        ? "Tender accepted by Group Manager"
-        : `Tender declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
+      const action =
+        payloadValue?.status === "GM_ACCEPTED"
+          ? "Tender accepted by Group Manager"
+          : `Tender declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
 
       const mergedTender = {
         ...existingTender,
@@ -335,15 +357,18 @@ export default class Controller {
           {
             action,
             by: req.authUser._id,
-            date: new Date()
-          }
-        ]
+            date: new Date(),
+          },
+        ],
       };
 
       const updated = await updateTender(new Tender(mergedTender));
 
-      const getTMData = await getTM()
-      const notificationType = payloadValue?.status === "GM_ACCEPTED" ? NotificationType.TENDER_ACCEPTED : NotificationType.TENDER_DECLINED
+      const getTMData = await getTM();
+      const notificationType =
+        payloadValue?.status === "GM_ACCEPTED"
+          ? NotificationType.TENDER_ACCEPTED
+          : NotificationType.TENDER_DECLINED;
       await sendNotification(
         getTMData._id,
         existingTender._id,
@@ -393,7 +418,7 @@ export default class Controller {
       // Verify tender is in GM_ACCEPTED state
       if (existingTender.status !== Status.GM_ACCEPTED) {
         res.status(400).json({
-          message: "Tender must be in GM_ACCEPTED state before approval"
+          message: "Tender must be in GM_ACCEPTED state before approval",
         });
         return;
       }
@@ -401,7 +426,7 @@ export default class Controller {
       // Verify that a company has been assigned
       if (!existingTender.companyAssigned) {
         res.status(400).json({
-          message: "A winning company must be assigned before approval"
+          message: "A winning company must be assigned before approval",
         });
         return;
       }
@@ -410,7 +435,7 @@ export default class Controller {
       const quotations = await getTenderQuotationsByTenderId(tenderId);
       if (quotations.length === 0) {
         res.status(400).json({
-          message: "At least one quotation must exist before approval"
+          message: "At least one quotation must exist before approval",
         });
         return;
       }
@@ -431,7 +456,7 @@ export default class Controller {
         })
       );
 
-      const getTMData = await getTM()
+      const getTMData = await getTM();
       await sendNotification(
         getTMData._id,
         existingTender._id,
@@ -441,7 +466,7 @@ export default class Controller {
 
       res.status(200).json({
         message: "Tender approved successfully",
-        tender: updatedTender
+        tender: updatedTender,
       });
       return;
     } catch (error) {
