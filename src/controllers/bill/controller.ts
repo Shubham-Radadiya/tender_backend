@@ -1,8 +1,8 @@
 import { Response } from "express";
 import { Request } from "../../request";
-import Joi, { isError } from "joi";
+import Joi, { any, isError } from "joi";
 import { get as _get } from "lodash";
-import { SHA256 } from "crypto-js";
+
 import {
   createBill,
   deleteBillById,
@@ -11,48 +11,19 @@ import {
   IBill,
   Bill,
   updateBill,
+  getBillsByCompanyAndTenderId,
 } from "../../modules/bill";
+import { getTenderQuotationByTenderId } from "../../modules/tenderQuotation";
 
 export default class Controller {
   private readonly createBillSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    dob: Joi.date().required(),
-    address: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .required(),
-    password: Joi.string()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      })
-      .required(),
-    phoneNumber: Joi.string().required(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .required(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
+    companyId: Joi.string().required(),
+    tenderId: Joi.string().required(),
+    amount: Joi.number().required(),
+    taxPercent: Joi.number().required(),
+    additionalCharges: Joi.number().required(),
+    total: Joi.number().required(),
+    status: Joi.string().required(),
   });
 
   private readonly updateBillSchema = Joi.object({
@@ -113,7 +84,8 @@ export default class Controller {
 
   protected readonly createBill = async (req: Request, res: Response) => {
     try {
-      const payload = req.body;
+      const payload = { ...req.body, companyId: req.authUser._id };
+
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -135,7 +107,26 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
+      const tenderAmout = await getTenderQuotationByTenderId(payload.tenderId);
+      const totalAmount = tenderAmout?.itemRates?.reduce((sum, item) => {
+        return sum + item?.amount;
+      }, 0);
+      const totalbillAmout = await getBillsByCompanyAndTenderId(
+        req.authUser._id,
+        payload.tenderId
+      );
+      const totalBillAmount = totalbillAmout.reduce((sum, bill) => {
+        return sum + bill?.total;
+      }, 0);
 
+      if (totalBillAmount + payloadValue.total > totalAmount) {
+        res.status(422).json({
+          message: `The ammount is too large you can not add more then ${
+            totalAmount - totalBillAmount
+          }.`,
+        });
+        return;
+      }
       const newBill = await createBill(new Bill({ ...payloadValue }));
       res.status(201).json(newBill);
       return;

@@ -8,7 +8,25 @@ import { TenderQuotationModel } from "./schema";
  */
 export const getTenderQuotationsByTenderId = async (tenderId: string) => {
   const quotations = await TenderQuotationModel.find({ tenderId })
-    .populate("companyId", "firstName lastName email phoneNumber profile companyDetails")
+    .populate(
+      "companyId",
+      "firstName lastName email phoneNumber profile companyDetails"
+    )
     .lean();
-  return quotations ? quotations.map(item => new TenderQuotation(item)) : [];
-}; 
+  return quotations ? quotations.map((item) => new TenderQuotation(item)) : [];
+};
+
+/**
+ * Get quotation for a specific tender
+ * @param tenderId - ID of the tender
+ * @returns Array of quotations for the tender
+ */
+export const getTenderQuotationByTenderId = async (tenderId: string) => {
+  const quotation = await TenderQuotationModel.findOne({ tenderId })
+    .populate(
+      "companyId",
+      "firstName lastName email phoneNumber profile companyDetails"
+    )
+    .lean();
+  return new TenderQuotation(quotation);
+};

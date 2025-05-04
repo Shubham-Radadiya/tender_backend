@@ -14,6 +14,7 @@ import Tender from "./controllers/tender";
 import Company from "./controllers/company";
 import TenderQuotation from "./controllers/tenderQuotation";
 import Notification from "./controllers/notification";
+import Bill from "./controllers/bill";
 
 export default class App {
   public static instance: express.Application;
@@ -67,6 +68,11 @@ export default class App {
     );
     this.instance.use("/company", validateAuthIdToken, new Company().router);
     this.instance.use("/image", validateAuthIdToken, new Image().router);
-    this.instance.use("/notification", validateAuthIdToken, new Notification().router);
+    this.instance.use(
+      "/notification",
+      validateAuthIdToken,
+      new Notification().router
+    );
+    this.instance.use("/billing", validateAuthIdToken, new Bill().router);
   }
 }
