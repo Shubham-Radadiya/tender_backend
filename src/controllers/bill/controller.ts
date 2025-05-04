@@ -107,21 +107,21 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
-      const tenderAmout = await getTenderQuotationByTenderId(payload.tenderId);
-      const totalAmount = tenderAmout?.itemRates?.reduce((sum, item) => {
+      const tenderAmount = await getTenderQuotationByTenderId(payload.tenderId);
+      const totalAmount = tenderAmount?.itemRates?.reduce((sum, item) => {
         return sum + item?.amount;
       }, 0);
-      const totalbillAmout = await getBillsByCompanyAndTenderId(
+      const amountData = await getBillsByCompanyAndTenderId(
         req.authUser._id,
         payload.tenderId
       );
-      const totalBillAmount = totalbillAmout.reduce((sum, bill) => {
-        return sum + bill?.total;
+      const totalBillAmount = amountData.reduce((sum, bill) => {
+        return sum + bill?.amount;
       }, 0);
 
-      if (totalBillAmount + payloadValue.total > totalAmount) {
+      if (totalBillAmount + payloadValue.amount > totalAmount) {
         res.status(422).json({
-          message: `The ammount is too large you can not add more then ${
+          message: `The amount is too large you can not add more then ${
             totalAmount - totalBillAmount
           }.`,
         });

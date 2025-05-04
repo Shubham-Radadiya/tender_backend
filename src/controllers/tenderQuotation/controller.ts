@@ -180,7 +180,7 @@ export default class Controller {
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
-      const payloadValue: Partial<ITender> =
+      const payloadValue: Partial<ITenderQuotation> =
         await this.updateTenderQuotationSchema
           .validateAsync(payload)
           .then((value) => value)
@@ -200,6 +200,15 @@ export default class Controller {
         return;
       }
 
+      if (payloadValue?.companyId.toString()) {
+        if (
+          existingTenderQuotation?.companyId.toString() !==
+          payloadValue?.companyId.toString()
+        ) {
+          res.status(404).json({ message: "Mis-Match Company Id." });
+          return;
+        }
+      }
       const mergedTenderQuotation = {
         ...existingTenderQuotation,
         ...payloadValue,

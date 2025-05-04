@@ -17,7 +17,7 @@ import { Status } from "../../modules/tender/schema";
 import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
 import { NotificationType } from "../../modules/notification/schema/notification";
 import { sendNotification } from "../../helper/sendNotification";
-import { getGM, getTM } from "../../modules/user";
+import { getGM, getTM, getUserById } from "../../modules/user";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -109,7 +109,7 @@ export default class Controller {
 
   protected readonly getTenderForCM = async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
+      const id = req.authUser._id;
       const tenderList = await getTenderByCompany(id);
       res.status(200).json({ message: "Tender List For CM", tenderList });
       return;
@@ -293,13 +293,21 @@ export default class Controller {
         return;
       }
 
+      if (!payloadValue?.companyAssigned) {
+        res.status(404).json({ message: "Invalid Company Id" });
+        return;
+      }
+      const companyDetails = await getUserById(
+        payloadValue?.companyAssigned.toString()
+      );
+
       const mergedTender = {
         ...existingTender,
         ...payloadValue,
         history: [
           ...(existingTender.history || []),
           {
-            action: `Winning company ${payloadValue.companyAssigned} assigned by Group Manager`,
+            action: `Winning company ${companyDetails.firstName} ${companyDetails.lastName} assigned by Group Manager`,
             by: req.authUser._id,
             date: new Date(),
           },
@@ -440,6 +448,14 @@ export default class Controller {
         return;
       }
 
+      if (!existingTender?.companyAssigned) {
+        res.status(404).json({ message: "Invalid Company Id" });
+        return;
+      }
+      const companyDetails = await getUserById(
+        existingTender?.companyAssigned.toString()
+      );
+
       // Update tender status to GM_APPROVED
       const updatedTender = await updateTender(
         new Tender({
@@ -448,7 +464,7 @@ export default class Controller {
           history: [
             ...(existingTender.history || []),
             {
-              action: `Tender approved and assigned to company ${existingTender.companyAssigned}`,
+              action: `Tender approved and assigned to company ${companyDetails.firstName} ${companyDetails.lastName}`,
               by: req.authUser._id,
               date: new Date(),
             },

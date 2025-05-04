@@ -16,12 +16,12 @@ import { UserRole } from "../../modules/user/schema";
 
 export default class Controller {
   private readonly createUserSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    dob: Joi.date().required(),
-    address: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
+    firstName: Joi.string().optional(),
+    lastName: Joi.string().optional(),
+    dob: Joi.date().optional(),
+    address: Joi.string().optional(),
+    city: Joi.string().optional(),
+    state: Joi.string().optional(),
     email: Joi.string()
       .email({ tlds: { allow: false } })
       .required(),
@@ -31,7 +31,7 @@ export default class Controller {
         return SHA256(v).toString();
       })
       .required(),
-    phoneNumber: Joi.string().required(),
+    phoneNumber: Joi.string().optional(),
     profile: Joi.string().optional(),
     role: Joi.string()
       .valid(
