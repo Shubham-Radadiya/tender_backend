@@ -13,6 +13,7 @@ import {
   getUser,
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
+import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
 
 export default class Controller {
   private readonly createUserSchema = Joi.object({
@@ -55,6 +56,7 @@ export default class Controller {
       website: Joi.string(),
       annualTenderCap: Joi.number(),
     }).optional(),
+    managedCompanyManagers: Joi.array().items(Joi.string()).optional(),
   }).custom((value, helpers) => {
     if (
       value.role === "COMPANY_MANAGER" &&
@@ -152,6 +154,26 @@ export default class Controller {
         });
       if (!payloadValue) {
         return;
+      }
+
+      if (
+        payloadValue.role === "GROUP_MANAGER" &&
+        Array.isArray(payloadValue.managedCompanyManagers)
+      ) {
+        const validManagers = await checkCompanyManagers(
+          payloadValue.managedCompanyManagers
+        );
+
+        if (
+          !validManagers ||
+          validManagers.length !== payloadValue.managedCompanyManagers.length
+        ) {
+          res.status(400).json({
+            message:
+              "All companyManagerIds must belong to users with role COMPANY_MANAGER",
+          });
+          return;
+        }
       }
 
       const newUser = await createUser(new User({ ...payloadValue }));
