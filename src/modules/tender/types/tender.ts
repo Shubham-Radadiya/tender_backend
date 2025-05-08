@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { isUndefined, omitBy } from "lodash";
-import { Status } from "../schema";
+import { TenderStatus } from "../schema";
 import { IUser } from "../../user";
 import { ICategory } from "../../category";
 import { IDepartment } from "../../department";
@@ -22,7 +22,7 @@ export interface ITender {
     unit: string;
   }[];
   createdBy: string | IUser;
-  status: Status;
+  status: TenderStatus;
   // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
   history?: {
@@ -52,7 +52,7 @@ export class Tender implements ITender {
     unit: string;
   }[];
   createdBy: string | IUser;
-  status: Status;
+  status: TenderStatus;
   // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
   history?: {
@@ -84,10 +84,10 @@ export class Tender implements ITender {
     this.companyAssigned = input.companyAssigned;
     this.history = input.history
       ? input.history.map((h) => ({
-          action: h.action,
-          by: h.by,
-          date: h.date,
-        }))
+        action: h.action,
+        by: h.by,
+        date: h.date,
+      }))
       : [];
     this.declineReason = input.declineReason;
     this.createdAt = input.createdAt;

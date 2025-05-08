@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
 import { ITender } from "../types";
 
-export enum Status {
+export enum TenderStatus {
   GM_PENDING = "GM_PENDING",
   GM_ACCEPTED = "GM_ACCEPTED",
   GM_DECLINED = "GM_DECLINED",
@@ -30,8 +30,8 @@ const tender = new Schema<ITender>(
     createdBy: { type: Schema.Types.ObjectId, ref: "user" }, // Tender Manager
     status: {
       type: String,
-      enum: Object.values(Status),
-      default: Status.GM_PENDING,
+      enum: Object.values(TenderStatus),
+      default: TenderStatus.GM_PENDING,
     },
     // assignedTo: { type: Schema.Types.ObjectId, ref: "user" }, // Group Manager
     companyAssigned: { type: Schema.Types.ObjectId, ref: "user" }, // Company Manager

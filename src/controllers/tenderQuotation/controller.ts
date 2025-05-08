@@ -7,7 +7,7 @@ import {
   // getTenderForGM,
   ITender,
 } from "../../modules/tender";
-import { Status } from "../../modules/tender/schema";
+import { TenderStatus } from "../../modules/tender/schema";
 import {
   createTenderQuotation,
   deleteTenderQuotationById,
@@ -18,6 +18,7 @@ import {
   getTenderQuotationsByTenderId,
 } from "../../modules/tenderQuotation";
 import { getUserById } from "../../modules/user";
+import { UserRole } from "../../modules/user/schema";
 
 export default class Controller {
   private readonly createTenderQuotationSchema = Joi.object({
@@ -55,6 +56,7 @@ export default class Controller {
     res: Response
   ) => {
     try {
+      const authUser = req.authUser
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
@@ -79,6 +81,11 @@ export default class Controller {
         return;
       }
 
+      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+        res.status(422).json({ message: "Not have permission to create." });
+        return
+      }
+
       // Check if tender exists and is in GM_ACCEPTED state
       const existingTender = await getTenderById(
         payloadValue.tenderId.toString()
@@ -88,9 +95,9 @@ export default class Controller {
         return;
       }
 
-      if (existingTender.status !== Status.GM_ACCEPTED) {
+      if (existingTender.status !== TenderStatus.GM_ACCEPTED) {
         res.status(400).json({
-          message: "Tender must be in GM_ACCEPTED state to create quotation",
+          message: "Tender must be ACCEPTED By GM.",
         });
         return;
       }
@@ -175,6 +182,7 @@ export default class Controller {
     res: Response
   ) => {
     try {
+      const authUser = req.authUser
       const tenderQuotationId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -191,6 +199,11 @@ export default class Controller {
           });
 
       if (!payloadValue) return;
+
+      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER && authUser.role !== UserRole.TENDER_MANAGER) {
+        res.status(422).json({ message: "Not have permission to change." });
+        return
+      }
 
       const existingTenderQuotation = await getTenderQuotationById(
         tenderQuotationId

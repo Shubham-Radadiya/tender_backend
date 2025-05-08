@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { isUndefined, omitBy } from "lodash";
 import { IUser } from "../../user";
 import { ITender } from "../../tender";
-import { Status } from "../schema";
+import { BillStatus } from "../schema";
 
 export interface IBill {
   _id?: string;
@@ -12,7 +12,7 @@ export interface IBill {
   taxPercent: number;
   additionalCharges: number;
   total: number;
-  status: Status;
+  status: BillStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -25,7 +25,7 @@ export class Bill implements IBill {
   taxPercent: number;
   additionalCharges: number;
   total: number;
-  status: Status;
+  status: BillStatus;
   createdAt?: Date;
   updatedAt?: Date;
 

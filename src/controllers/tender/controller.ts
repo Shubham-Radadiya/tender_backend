@@ -13,11 +13,12 @@ import {
   Tender,
   updateTender,
 } from "../../modules/tender";
-import { Status } from "../../modules/tender/schema";
+import { TenderStatus } from "../../modules/tender/schema";
 import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
 import { NotificationType } from "../../modules/notification/schema/notification";
 import { sendNotification } from "../../helper/sendNotification";
 import { getGM, getTM, getUserById } from "../../modules/user";
+import { UserRole } from "../../modules/user/schema";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -95,7 +96,7 @@ export default class Controller {
 
   protected readonly getTenderForGM = async (_req: Request, res: Response) => {
     try {
-      const tenderList = await getTenderByStatus("GM_PENDING");
+      const tenderList = await getTenderByStatus(TenderStatus.GM_PENDING);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
     } catch (error) {
@@ -146,10 +147,11 @@ export default class Controller {
 
   protected readonly createTender = async (req: Request, res: Response) => {
     try {
-      const userId = req.authUser._id;
+      const user = req.authUser;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
+        return
       }
       const payloadValue: ITender = await this.createTenderSchema
         .validateAsync(payload)
@@ -169,16 +171,19 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
-
+      if (user.role !== UserRole.ADMIN && user.role !== UserRole.TENDER_MANAGER) {
+        res.status(422).json({ message: "Don't have access to generate the Tender." });
+        return
+      }
       const newTender = await createTender(
         new Tender({
           ...payloadValue,
-          createdBy: userId,
-          status: Status.GM_PENDING,
+          createdBy: user._id,
+          status: TenderStatus.GM_PENDING,
           history: [
             {
               action: "Tender created and assigned to Group Manager",
-              by: userId,
+              by: user._id,
               date: new Date(),
             },
           ],
@@ -191,7 +196,7 @@ export default class Controller {
         gmData._id,
         newTender._id!,
         NotificationType.TENDER_CREATED,
-        `New tender "${payloadValue.name}" has been created and assigned to you`
+        `New tender ${payloadValue.name} has been created and assigned to you`
       );
 
       res.status(201).json(newTender);
@@ -241,15 +246,15 @@ export default class Controller {
       let message: string;
 
       switch (payloadValue.status) {
-        case Status.GM_ACCEPTED:
+        case TenderStatus.GM_ACCEPTED:
           notificationType = NotificationType.TENDER_ACCEPTED;
           message = `Tender "${existingTender.name}" has been accepted by GM`;
           break;
-        case Status.GM_DECLINED:
+        case TenderStatus.GM_DECLINED:
           notificationType = NotificationType.TENDER_DECLINED;
           message = `Tender "${existingTender.name}" has been declined by GM`;
           break;
-        case Status.GM_APPROVED:
+        case TenderStatus.GM_APPROVED:
           notificationType = NotificationType.TENDER_APPROVED;
           message = `Tender "${existingTender.name}" has been approved by GM`;
           break;
@@ -271,6 +276,7 @@ export default class Controller {
 
   protected readonly tenderGotTo = async (req: Request, res: Response) => {
     try {
+      const authUser = req.authUser
       const tenderId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -286,6 +292,12 @@ export default class Controller {
         });
 
       if (!payloadValue) return;
+
+
+      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+        res.status(422).json({ message: "Not have permission to assign." });
+        return
+      }
 
       const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
@@ -326,10 +338,12 @@ export default class Controller {
 
   protected readonly tenderAccepted = async (req: Request, res: Response) => {
     try {
+      const authUser = req.authUser
       const tenderId = req.params.id;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
+        return
       }
       const payloadValue: Partial<ITender> = await this.tenderAcceptedSchema
         .validateAsync(payload)
@@ -341,6 +355,11 @@ export default class Controller {
         });
 
       if (!payloadValue) return;
+
+      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+        res.status(422).json({ message: "Not have permission to accept." });
+        return
+      }
 
       const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
@@ -414,24 +433,26 @@ export default class Controller {
 
   protected readonly approveTender = async (req: Request, res: Response) => {
     try {
+      const authUser = req.authUser
       const tenderId = req.params.id;
-
-      // Get the tender
       const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
         res.status(404).json({ message: "Tender not found" });
         return;
       }
 
-      // Verify tender is in GM_ACCEPTED state
-      if (existingTender.status !== Status.GM_ACCEPTED) {
+      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+        res.status(422).json({ message: "Not have permission to approve tender." });
+        return
+      }
+
+      if (existingTender.status !== TenderStatus.GM_ACCEPTED) {
         res.status(400).json({
           message: "Tender must be in GM_ACCEPTED state before approval",
         });
         return;
       }
 
-      // Verify that a company has been assigned
       if (!existingTender.companyAssigned) {
         res.status(400).json({
           message: "A winning company must be assigned before approval",
@@ -439,7 +460,6 @@ export default class Controller {
         return;
       }
 
-      // Get all quotations for this tender
       const quotations = await getTenderQuotationsByTenderId(tenderId);
       if (quotations.length === 0) {
         res.status(400).json({
@@ -460,7 +480,7 @@ export default class Controller {
       const updatedTender = await updateTender(
         new Tender({
           ...existingTender,
-          status: Status.GM_APPROVED,
+          status: TenderStatus.GM_APPROVED,
           history: [
             ...(existingTender.history || []),
             {

@@ -243,6 +243,7 @@ export default class Controller {
 
   protected readonly resetPassword = async (req: Request, res: Response) => {
     try {
+      const authUser = req?.authUser
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
@@ -273,6 +274,10 @@ export default class Controller {
         return;
       }
 
+      if (payloadValue.email !== authUser?.email) {
+        res.status(422).json({ message: "Invalid Email." });
+        return;
+      }
       const user: User = await getUserByEmail(payloadValue.email);
       if (!user) {
         res.status(422).json({

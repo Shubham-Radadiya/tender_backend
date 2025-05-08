@@ -76,21 +76,21 @@ export default class Controller {
     address: Joi.string().optional(),
     city: Joi.string().optional(),
     state: Joi.string().optional(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .optional(),
+    // email: Joi.string()
+    //   .email({ tlds: { allow: false } })
+    //   .optional(),
     password: Joi.string().min(6).optional(),
     phoneNumber: Joi.string().optional(),
     profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .optional(),
+    // role: Joi.string()
+    //   .valid(
+    //     "ADMIN",
+    //     "TENDER_MANAGER",
+    //     "GROUP_MANAGER",
+    //     "COMPANY_MANAGER",
+    //     "BANK_MANAGER"
+    //   )
+    //   .optional(),
     companyDetails: Joi.object({
       companyName: Joi.string(),
       businessEmail: Joi.string().email(),

@@ -9,9 +9,11 @@ export default class Bill extends Controller {
   }
 
   private initializeRoutes() {
+    this.router.get("/tender/:tenderId", this.getBillByTenderId);
     this.router.get("/", this.getBill);
     this.router.get("/:id", this.getBill);
     this.router.post("/", this.createBill);
+    this.router.put("/status/:id", this.updateBillStatus);
     this.router.put("/:id", this.updateBill);
     this.router.delete("/:id", this.deleteBill);
   }

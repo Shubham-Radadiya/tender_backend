@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
 import { IBill } from "../types";
 
-export enum Status {
+export enum BillStatus {
   SAVED = "SAVED",
   PAID = "PAID",
 }
@@ -16,8 +16,8 @@ const bill = new Schema<IBill>(
     total: { type: Number },
     status: {
       type: String,
-      enum: Object.values(Status),
-      default: Status.SAVED,
+      enum: Object.values(BillStatus),
+      default: BillStatus.SAVED,
     },
   },
   { timestamps: true }
