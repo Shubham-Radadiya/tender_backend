@@ -14,6 +14,7 @@ import {
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
 import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
+import { isUserProfileComplete } from "../../helper/isProfileCompleted";
 
 export default class Controller {
   private readonly createUserSchema = Joi.object({
@@ -111,11 +112,19 @@ export default class Controller {
       const userId = req.params.id;
       if (userId) {
         const user = await getUserById(userId);
-        res.status(200).json({ message: "User Listed", user });
+        const isProfileComplete = await isUserProfileComplete(user);
+
+        res.status(200).json({ message: "User Listed", user, isProfileComplete });
         return;
       }
       const userList = await getUser();
-      res.status(200).json({ message: "User Listed", userList });
+      const enrichedList = await Promise.all(
+        userList.map(async user => ({
+          ...user,
+          isProfileComplete: await isUserProfileComplete(user),
+        }))
+      );
+      res.status(200).json({ message: "User Listed", enrichedList });
       return;
     } catch (error) {
       console.log("Error in getting the User", error);

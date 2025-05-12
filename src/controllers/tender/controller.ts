@@ -94,9 +94,14 @@ export default class Controller {
     }
   };
 
-  protected readonly getTenderForGM = async (_req: Request, res: Response) => {
+  protected readonly getTenderForGM = async (req: Request, res: Response) => {
     try {
-      const tenderList = await getTenderByStatus(TenderStatus.GM_PENDING);
+      const user = req.authUser;
+      if (user.role !== UserRole.ADMIN && user.role !== UserRole.GROUP_MANAGER) {
+        res.status(422).json({ message: "Don't have access for the Tender." });
+        return
+      }
+      const tenderList = await getTenderByStatus([TenderStatus.GM_PENDING, TenderStatus.GM_ACCEPTED]);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
     } catch (error) {
