@@ -1,6 +1,6 @@
 import { Tender } from ".";
 import { TenderQuotationModel } from "../tenderQuotation/schema";
-import { TenderModel } from "./schema";
+import { TenderModel, TenderStatus } from "./schema";
 
 /**
  *
@@ -43,7 +43,7 @@ export const getTenderById = async (_id: string) => {
 };
 
 export const getTenderByCompany = async (companyAssigned: string) => {
-  const tender = await TenderModel.find({ companyAssigned })
+  const tender = await TenderModel.find({ companyAssigned, status: TenderStatus.GM_APPROVED })
     .populate("category")
     .populate("department")
     .lean();
