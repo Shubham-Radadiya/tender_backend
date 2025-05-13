@@ -15,6 +15,7 @@ import Company from "./controllers/company";
 import TenderQuotation from "./controllers/tenderQuotation";
 import Notification from "./controllers/notification";
 import Bill from "./controllers/bill";
+import { ChatController } from "./modules/chat/controllers/chat.controller";
 
 export default class App {
   public static instance: express.Application;
@@ -45,12 +46,20 @@ export default class App {
 
     // Body Parser
     this.instance.use(express.json({ limit: "50mb" }));
+    this.instance.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
     // support json encoded bodies
     this.instance.set("views", path.join(__dirname, "views"));
     this.instance.set("view engine", "ejs");
     this.instance.use(express.static(process.cwd() + "/public"));
+
+    // Add error handling middleware
+    this.instance.use((err, req, res, next) => {
+      console.error(err.stack);
+      res.status(500).json({ error: "Something broke!" });
+    });
   }
+
   private static initializeControllers() {
     this.instance.use("/auth", new Auth().router);
     this.instance.use("/user", validateAuthIdToken, new User().router);
@@ -74,5 +83,15 @@ export default class App {
       new Notification().router
     );
     this.instance.use("/billing", validateAuthIdToken, new Bill().router);
+
+    // Initialize chat routes
+    const chatRouter = express.Router();
+    const chatController = new ChatController();
+
+    chatRouter.post("/", chatController.createChat);
+    chatRouter.get("/:chatId", chatController.getChatHistory);
+    chatRouter.get("/user/chats", chatController.getUserChats);
+
+    this.instance.use("/chat", validateAuthIdToken, chatRouter);
   }
 }

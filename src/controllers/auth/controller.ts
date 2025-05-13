@@ -243,7 +243,7 @@ export default class Controller {
 
   protected readonly resetPassword = async (req: Request, res: Response) => {
     try {
-      const authUser = req?.authUser
+      const authUser = req?.authUser;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
