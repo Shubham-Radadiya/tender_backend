@@ -80,7 +80,12 @@ export default class Controller {
     // email: Joi.string()
     //   .email({ tlds: { allow: false } })
     //   .optional(),
-    password: Joi.string().min(6).optional(),
+    password: Joi.string()
+      .min(6)
+      .custom((v) => {
+        return SHA256(v).toString();
+      })
+      .optional(),
     phoneNumber: Joi.string().optional(),
     profile: Joi.string().optional(),
     // role: Joi.string()

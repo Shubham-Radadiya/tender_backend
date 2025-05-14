@@ -15,6 +15,7 @@ import {
 } from "../../modules/user";
 import { generateToken } from "../../helper/jwtToken";
 import { UserModel, UserRole } from "../../modules/user/schema";
+import { isUserProfileComplete } from "../../helper/isProfileCompleted";
 
 export default class Controller {
   private readonly loginSchema = Joi.object({
@@ -139,6 +140,7 @@ export default class Controller {
       }
       const populatedUser = await getPopulatedUser(user._id);
 
+      const isProfileComplete = await isUserProfileComplete(populatedUser);
       const token = await generateToken(user._id);
       res
         .cookie("auth", token, {
@@ -147,7 +149,7 @@ export default class Controller {
         })
         .setHeader("x-auth-token", token)
         .status(200)
-        .json({ ...populatedUser, token });
+        .json({ ...populatedUser, isProfileComplete, token });
       return;
     } catch (error) {
       console.log("Error in login", error);

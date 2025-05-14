@@ -98,7 +98,7 @@ export default class Controller {
     try {
       const user = req.authUser;
       if (user.role !== UserRole.ADMIN && user.role !== UserRole.GROUP_MANAGER) {
-        res.status(422).json({ message: "Don't have access for the Tender." });
+        res.status(422).json({ message: "Unauthorize Request." });
         return
       }
       const tenderList = await getTenderByStatus([TenderStatus.GM_PENDING, TenderStatus.GM_ACCEPTED]);
@@ -115,7 +115,12 @@ export default class Controller {
 
   protected readonly getTenderForCM = async (req: Request, res: Response) => {
     try {
+      const user = req.authUser
       const id = req.authUser._id;
+      if (user.role !== UserRole.ADMIN && user.role !== UserRole.COMPANY_MANAGER) {
+        res.status(422).json({ message: "Unauthorize Request." });
+        return
+      }
       const tenderList = await getTenderByCompany(id);
       res.status(200).json({ message: "Tender List For CM", tenderList });
       return;
