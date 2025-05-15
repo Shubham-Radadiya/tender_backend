@@ -19,6 +19,8 @@ import {
 } from "../../modules/tenderQuotation";
 import { getUserById } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
+import { sendNotification } from "../../helper/sendNotification";
+import { NotificationType } from "../../modules/notification/schema";
 
 export default class Controller {
   private readonly createTenderQuotationSchema = Joi.object({
@@ -205,7 +207,7 @@ export default class Controller {
         return
       }
 
-      const existingTenderQuotation = await getTenderQuotationById(
+      const existingTenderQuotation: any = await getTenderQuotationById(
         tenderQuotationId
       );
       if (!existingTenderQuotation) {
@@ -230,6 +232,15 @@ export default class Controller {
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );
+      if (authUser.role !== UserRole.TENDER_MANAGER && payloadValue?.tenderFee && payloadValue?.receipts) {
+        const tenderDetails = await getTenderById(existingTenderQuotation.tenderId)
+        await sendNotification(
+          authUser._id,
+          tenderDetails._id,
+          NotificationType.TENDER_APPROVED_BY_TM,
+          `New Tender ${tenderDetails.name} has been created and assigned to you`
+        );
+      }
       res.status(200).json(updatedTenderQuotation);
       return;
     } catch (error) {

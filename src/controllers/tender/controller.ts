@@ -19,6 +19,7 @@ import { NotificationType } from "../../modules/notification/schema/notification
 import { sendNotification } from "../../helper/sendNotification";
 import { getGM, getTM, getUserById } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
+import { updateNotification } from "../../modules/notification";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -209,7 +210,8 @@ export default class Controller {
         `New tender ${payloadValue.name} has been created and assigned to you`
       );
 
-      res.status(201).json(newTender);
+      const populatedTender = await getTenderById(newTender._id)
+      res.status(201).json(populatedTender);
       return;
     } catch (error) {
       console.log("Error in createTender", error);
@@ -406,6 +408,7 @@ export default class Controller {
         payloadValue?.status === "GM_ACCEPTED"
           ? NotificationType.TENDER_ACCEPTED
           : NotificationType.TENDER_DECLINED;
+
       await sendNotification(
         getTMData._id,
         existingTender._id,
