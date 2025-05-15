@@ -58,7 +58,7 @@ export default class Controller {
     res: Response
   ) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
@@ -83,9 +83,12 @@ export default class Controller {
         return;
       }
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to create." });
-        return
+        return;
       }
 
       // Check if tender exists and is in GM_ACCEPTED state
@@ -184,7 +187,7 @@ export default class Controller {
     res: Response
   ) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderQuotationId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -202,9 +205,13 @@ export default class Controller {
 
       if (!payloadValue) return;
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER && authUser.role !== UserRole.TENDER_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER &&
+        authUser.role !== UserRole.TENDER_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to change." });
-        return
+        return;
       }
 
       const existingTenderQuotation: any = await getTenderQuotationById(
@@ -232,10 +239,16 @@ export default class Controller {
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );
-      if (authUser.role !== UserRole.TENDER_MANAGER && payloadValue?.tenderFee && payloadValue?.receipts) {
-        const tenderDetails = await getTenderById(existingTenderQuotation.tenderId)
+      if (
+        authUser.role !== UserRole.TENDER_MANAGER &&
+        payloadValue?.tenderFee &&
+        payloadValue?.receipts
+      ) {
+        const tenderDetails = await getTenderById(
+          existingTenderQuotation.tenderId
+        );
         await sendNotification(
-          authUser._id,
+          tenderDetails.companyAssigned,
           tenderDetails._id,
           NotificationType.TENDER_APPROVED_BY_TM,
           `New Tender ${tenderDetails.name} has been created and assigned to you`
