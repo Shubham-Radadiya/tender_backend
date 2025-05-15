@@ -1,11 +1,17 @@
 import { Response } from "express";
 import { Request } from "../../request";
 import { getPaginatedNotifications } from "../../modules/notification/getPaginatedNotifications";
-import { getNotificationById, Notification, updateNotification } from "../../modules/notification";
+import {
+  getNotificationById,
+  Notification,
+  updateNotification,
+} from "../../modules/notification";
 
 export default class Controller {
-
-  protected readonly getPaginatedNotification = async (req: Request, res: Response) => {
+  protected readonly getPaginatedNotification = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
       const userId = req.authUser?._id;
       if (!userId) {
@@ -36,7 +42,10 @@ export default class Controller {
     }
   };
 
-  protected readonly updateNotificationStatus = async (req: Request, res: Response) => {
+  protected readonly updateNotificationStatus = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
       const notificationId = req.params.id;
 
@@ -47,9 +56,11 @@ export default class Controller {
       }
 
       const updated = await updateNotification(
-        new Notification({ ...existingNotification, isRead: true })
+        new Notification({ ...existingNotification.toObject(), isRead: true })
       );
-      res.status(200).json(updated);
+      res
+        .status(200)
+        .json({ message: "Notification status updated.", data: updated });
       return;
     } catch (error) {
       console.log("Error in updateNotification", error);

@@ -7,6 +7,9 @@ import { NotificationModel } from "./schema";
  * @returns update notification record
  */
 export const updateNotification = async (notification: Notification) => {
-  await NotificationModel.findByIdAndUpdate(notification._id, notification.toJSON());
+  await NotificationModel.findByIdAndUpdate(
+    notification._id,
+    notification.toJSON()
+  );
   return notification;
 };
