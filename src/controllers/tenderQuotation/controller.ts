@@ -16,6 +16,7 @@ import {
   TenderQuotation,
   updateTenderQuotation,
   getTenderQuotationsByTenderId,
+  getPopulatedTenderQuotationById,
 } from "../../modules/tenderQuotation";
 import { getUserById } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
@@ -168,9 +169,10 @@ export default class Controller {
         new TenderQuotation({ ...payloadValue })
       );
 
+      const populatedTQ = await getPopulatedTenderQuotationById(newQuotation._id)
       res.status(201).json({
         message: "Quotation created successfully",
-        quotation: newQuotation,
+        quotation: populatedTQ,
       });
       return;
     } catch (error) {
@@ -254,7 +256,8 @@ export default class Controller {
           `New Tender ${tenderDetails.name} has been created and assigned to you`
         );
       }
-      res.status(200).json(updatedTenderQuotation);
+      const populatedTQ = await getPopulatedTenderQuotationById(updatedTenderQuotation._id)
+      res.status(200).json({ updatedTenderQuotation: populatedTQ });
       return;
     } catch (error) {
       console.log("Error in update Tender Quotation", error);

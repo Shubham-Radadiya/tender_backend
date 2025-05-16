@@ -1,13 +1,25 @@
 import { Response } from "express";
 import { Request } from "../../request";
+import Joi, { isError } from "joi";
 import { getPaginatedNotifications } from "../../modules/notification/getPaginatedNotifications";
 import {
   getNotificationById,
+  INotification,
   Notification,
   updateNotification,
 } from "../../modules/notification";
 
 export default class Controller {
+  private readonly updateNotificationSchema = Joi.object({
+    type: Joi.string().valid(
+      "TENDER_CREATED",
+      "TENDER_ACCEPTED",
+      "TENDER_DECLINED",
+      "TENDER_APPROVED"
+    ).optional()
+  })
+
+
   protected readonly getPaginatedNotification = async (
     req: Request,
     res: Response
@@ -48,16 +60,45 @@ export default class Controller {
   ) => {
     try {
       const notificationId = req.params.id;
+      const payload = req.body
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+      }
+      const payloadValue: INotification = await this.updateNotificationSchema
+        .validateAsync(payload)
+        .then((value) => {
+          return value;
+        })
+        .catch((e) => {
+          console.log(e);
+          if (isError(e)) {
+            res.status(422).json(e);
+            return;
+          } else {
+            res.status(422).json({ message: e.message });
+            return;
+          }
+        });
+      if (!payloadValue) {
+        return;
+      }
 
       const existingNotification = await getNotificationById(notificationId);
       if (!existingNotification) {
         res.status(404).json({ message: "Notification not found" });
         return;
       }
+      let updated
 
-      const updated = await updateNotification(
-        new Notification({ ...existingNotification.toObject(), isRead: true })
-      );
+      if (payloadValue.type) {
+        updated = await updateNotification(
+          new Notification({ ...existingNotification.toObject(), isRead: true, type: payloadValue.type })
+        );
+      } else {
+        updated = await updateNotification(
+          new Notification({ ...existingNotification.toObject(), isRead: true })
+        );
+      }
       res
         .status(200)
         .json({ message: "Notification status updated.", data: updated });
