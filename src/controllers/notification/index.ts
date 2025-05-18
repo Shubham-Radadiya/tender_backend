@@ -10,5 +10,6 @@ export default class Notification extends Controller {
 
   private initializeRoutes() {
     this.router.get("/", this.getPaginatedNotification);
+    this.router.put("/status/:id", this.updateNotificationStatus);
   }
 } 

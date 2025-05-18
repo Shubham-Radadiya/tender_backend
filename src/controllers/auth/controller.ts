@@ -15,6 +15,11 @@ import {
 } from "../../modules/user";
 import { generateToken } from "../../helper/jwtToken";
 import { UserModel, UserRole } from "../../modules/user/schema";
+import { isUserProfileComplete } from "../../helper/isProfileCompleted";
+import {
+  decodePassword,
+  encodePassword,
+} from "../../helper/passwordEncodeDecode";
 
 export default class Controller {
   private readonly loginSchema = Joi.object({
@@ -28,12 +33,7 @@ export default class Controller {
         }
         return v;
       }),
-    password: Joi.string()
-      .required()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      }),
+    password: Joi.string().required().min(6),
   });
   private readonly forgotPasswordSchema = Joi.object({
     email: Joi.string()
@@ -93,12 +93,7 @@ export default class Controller {
         }
         return v;
       }),
-    newPassword: Joi.string()
-      .required()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      }),
+    newPassword: Joi.string().required().min(6),
     confirmPassword: Joi.string().required(),
   });
 
@@ -133,12 +128,14 @@ export default class Controller {
         return;
       }
 
-      if (payloadValue.password !== user.password) {
+      const decryptedPassword = decodePassword(user.password);
+      if (payloadValue.password !== decryptedPassword) {
         res.status(401).json({ message: "Invalid password" });
         return;
       }
       const populatedUser = await getPopulatedUser(user._id);
 
+      const isProfileComplete = await isUserProfileComplete(populatedUser);
       const token = await generateToken(user._id);
       res
         .cookie("auth", token, {
@@ -147,7 +144,7 @@ export default class Controller {
         })
         .setHeader("x-auth-token", token)
         .status(200)
-        .json({ ...populatedUser, token });
+        .json({ ...populatedUser, isProfileComplete, token });
       return;
     } catch (error) {
       console.log("Error in login", error);
@@ -225,7 +222,8 @@ export default class Controller {
         return;
       }
 
-      user.password = payloadValue.newPassword;
+      const encryptedPassword = encodePassword(payloadValue.newPassword);
+      user.password = encryptedPassword;
       user.otp = null;
       user.otpExpiry = null;
       await user.save();
@@ -243,7 +241,7 @@ export default class Controller {
 
   protected readonly resetPassword = async (req: Request, res: Response) => {
     try {
-      const authUser = req?.authUser
+      const authUser = req?.authUser;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
@@ -286,9 +284,10 @@ export default class Controller {
         return;
       }
 
+      const encryptedPassword = encodePassword(payloadValue.newPassword);
       const toUpdateUser = new User({
         ...user.toJSON(),
-        password: payloadValue.newPassword,
+        password: encryptedPassword,
       });
 
       const updatedUser = await updateUser(toUpdateUser);
@@ -455,7 +454,7 @@ export default class Controller {
         },
       ];
 
-      const hashedPassword = await SHA256("admin@123").toString();
+      const hashedPassword = encodePassword("admin@123");
 
       const promises = defaultUsers.map(async (user) => {
         const existingUser = await UserModel.findOne({ email: user.email });

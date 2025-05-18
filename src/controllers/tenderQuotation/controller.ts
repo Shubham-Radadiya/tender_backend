@@ -16,9 +16,12 @@ import {
   TenderQuotation,
   updateTenderQuotation,
   getTenderQuotationsByTenderId,
+  getPopulatedTenderQuotationById,
 } from "../../modules/tenderQuotation";
 import { getUserById } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
+import { sendNotification } from "../../helper/sendNotification";
+import { NotificationType } from "../../modules/notification/schema";
 
 export default class Controller {
   private readonly createTenderQuotationSchema = Joi.object({
@@ -56,7 +59,7 @@ export default class Controller {
     res: Response
   ) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
@@ -81,9 +84,12 @@ export default class Controller {
         return;
       }
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to create." });
-        return
+        return;
       }
 
       // Check if tender exists and is in GM_ACCEPTED state
@@ -163,9 +169,10 @@ export default class Controller {
         new TenderQuotation({ ...payloadValue })
       );
 
+      const populatedTQ = await getPopulatedTenderQuotationById(newQuotation._id)
       res.status(201).json({
         message: "Quotation created successfully",
-        quotation: newQuotation,
+        quotation: populatedTQ,
       });
       return;
     } catch (error) {
@@ -182,7 +189,7 @@ export default class Controller {
     res: Response
   ) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderQuotationId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -200,12 +207,16 @@ export default class Controller {
 
       if (!payloadValue) return;
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER && authUser.role !== UserRole.TENDER_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER &&
+        authUser.role !== UserRole.TENDER_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to change." });
-        return
+        return;
       }
 
-      const existingTenderQuotation = await getTenderQuotationById(
+      const existingTenderQuotation: any = await getTenderQuotationById(
         tenderQuotationId
       );
       if (!existingTenderQuotation) {
@@ -230,7 +241,23 @@ export default class Controller {
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );
-      res.status(200).json(updatedTenderQuotation);
+      if (
+        authUser.role !== UserRole.TENDER_MANAGER &&
+        payloadValue?.tenderFee &&
+        payloadValue?.receipts
+      ) {
+        const tenderDetails = await getTenderById(
+          existingTenderQuotation.tenderId
+        );
+        await sendNotification(
+          tenderDetails.companyAssigned,
+          tenderDetails._id,
+          NotificationType.TENDER_APPROVED_BY_TM,
+          `New Tender ${tenderDetails.name} has been created and assigned to you`
+        );
+      }
+      const populatedTQ = await getPopulatedTenderQuotationById(updatedTenderQuotation._id)
+      res.status(200).json({ updatedTenderQuotation: populatedTQ });
       return;
     } catch (error) {
       console.log("Error in update Tender Quotation", error);
