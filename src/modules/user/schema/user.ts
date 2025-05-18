@@ -22,6 +22,7 @@ const CompanyDetailsSchema = new Schema(
     ifscCode: String,
     website: String,
     annualTenderCap: Number,
+    adminApprove: { type: Boolean, default: false },
   },
   { _id: false }
 );

@@ -97,13 +97,17 @@ export default class Controller {
 
   protected readonly get = async (req: Request, res: Response) => {
     try {
-      const companyId = req.params.id;
+      const companyId = req.params.id as string;
+      const adminApprove = req.query.adminApprove as string;
       if (companyId) {
         const company = await getUserById(companyId);
         res.status(200).json({ message: "Company Listed", company });
         return;
       }
-      const companyList = await getUser(UserRole.COMPANY_MANAGER);
+      const companyList = await getUser(
+        UserRole.COMPANY_MANAGER,
+        adminApprove === "true"
+      );
       res.status(200).json({ message: "Company Listed", companyList });
       return;
     } catch (error) {
