@@ -8,6 +8,6 @@ export function encodePassword(password: string) {
 
 export function decodePassword(password: string) {
   const secretKey = process.env.AES_KEY;
-  const decrypted = AES.decrypt(password, secretKey).toString(enc.Utf8);
+  const decrypted = AES.decrypt(password, secretKey)?.toString(enc.Utf8);
   return decrypted;
 }
