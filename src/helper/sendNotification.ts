@@ -2,10 +2,12 @@ import { IUser } from "../modules/user"; // Adjust path as needed
 import { NotificationType } from "../modules/notification/schema/notification";
 import { createNotification, Notification } from "../modules/notification";
 
-export const sendNotification = async (userId: string | IUser,
+export const sendNotification = async (
+  userId: string | IUser,
   tenderId: string,
   type: NotificationType,
-  message: string) => {
+  message: string
+) => {
 
   const notification = new Notification({
     userId: userId as string,
@@ -15,5 +17,5 @@ export const sendNotification = async (userId: string | IUser,
     isRead: false
   });
   await createNotification(notification);
- 
+
 };

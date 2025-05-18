@@ -19,6 +19,7 @@ import { NotificationType } from "../../modules/notification/schema/notification
 import { sendNotification } from "../../helper/sendNotification";
 import { getGM, getTM, getUserById } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
+import { updateNotification } from "../../modules/notification";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -98,7 +99,7 @@ export default class Controller {
     try {
       const user = req.authUser;
       if (user.role !== UserRole.ADMIN && user.role !== UserRole.GROUP_MANAGER) {
-        res.status(422).json({ message: "Don't have access for the Tender." });
+        res.status(422).json({ message: "Unauthorize Request." });
         return
       }
       const tenderList = await getTenderByStatus([TenderStatus.GM_PENDING, TenderStatus.GM_ACCEPTED]);
@@ -115,7 +116,12 @@ export default class Controller {
 
   protected readonly getTenderForCM = async (req: Request, res: Response) => {
     try {
+      const user = req.authUser
       const id = req.authUser._id;
+      if (user.role !== UserRole.ADMIN && user.role !== UserRole.COMPANY_MANAGER) {
+        res.status(422).json({ message: "Unauthorize Request." });
+        return
+      }
       const tenderList = await getTenderByCompany(id);
       res.status(200).json({ message: "Tender List For CM", tenderList });
       return;
@@ -204,7 +210,8 @@ export default class Controller {
         `New tender ${payloadValue.name} has been created and assigned to you`
       );
 
-      res.status(201).json(newTender);
+      const populatedTender = await getTenderById(newTender._id)
+      res.status(201).json(populatedTender);
       return;
     } catch (error) {
       console.log("Error in createTender", error);
@@ -401,6 +408,7 @@ export default class Controller {
         payloadValue?.status === "GM_ACCEPTED"
           ? NotificationType.TENDER_ACCEPTED
           : NotificationType.TENDER_DECLINED;
+
       await sendNotification(
         getTMData._id,
         existingTender._id,

@@ -15,6 +15,7 @@ import {
 import { UserRole } from "../../modules/user/schema";
 import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
 import { isUserProfileComplete } from "../../helper/isProfileCompleted";
+import { encodePassword } from "../../helper/passwordEncodeDecode";
 
 export default class Controller {
   private readonly createUserSchema = Joi.object({
@@ -27,12 +28,7 @@ export default class Controller {
     email: Joi.string()
       .email({ tlds: { allow: false } })
       .required(),
-    password: Joi.string()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      })
-      .required(),
+    password: Joi.string().min(6).required(),
     phoneNumber: Joi.string().optional(),
     profile: Joi.string().optional(),
     role: Joi.string()
@@ -114,12 +110,14 @@ export default class Controller {
         const user = await getUserById(userId);
         const isProfileComplete = await isUserProfileComplete(user);
 
-        res.status(200).json({ message: "User Listed", user, isProfileComplete });
+        res
+          .status(200)
+          .json({ message: "User Listed", user, isProfileComplete });
         return;
       }
       const userList = await getUser();
       const enrichedList = await Promise.all(
-        userList.map(async user => ({
+        userList.map(async (user) => ({
           ...user,
           isProfileComplete: await isUserProfileComplete(user),
         }))
@@ -185,7 +183,10 @@ export default class Controller {
         }
       }
 
-      const newUser = await createUser(new User({ ...payloadValue }));
+      const encryptedPassword = encodePassword(payloadValue.password);
+      const newUser = await createUser(
+        new User({ ...payloadValue, password: encryptedPassword })
+      );
       res.status(201).json(newUser);
       return;
     } catch (error) {
@@ -219,6 +220,10 @@ export default class Controller {
         });
       if (!payloadValue) {
         return;
+      }
+
+      if (payloadValue.password) {
+        payloadValue.password = encodePassword(payloadValue.password);
       }
       const existingUser = await getUserById(userId);
       if (!existingUser) {

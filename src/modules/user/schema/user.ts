@@ -22,6 +22,7 @@ const CompanyDetailsSchema = new Schema(
     ifscCode: String,
     website: String,
     annualTenderCap: Number,
+    adminApprove: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -45,7 +46,7 @@ const user = new Schema<IUser>(
     },
     companyDetails: {
       type: CompanyDetailsSchema,
-      default: undefined, // So it stays empty unless filled
+      default: undefined,
     },
     managedCompanyManagers: [
       {
