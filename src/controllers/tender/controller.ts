@@ -98,11 +98,17 @@ export default class Controller {
   protected readonly getTenderForGM = async (req: Request, res: Response) => {
     try {
       const user = req.authUser;
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.GROUP_MANAGER) {
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Unauthorize Request." });
-        return
+        return;
       }
-      const tenderList = await getTenderByStatus([TenderStatus.GM_PENDING, TenderStatus.GM_ACCEPTED]);
+      const tenderList = await getTenderByStatus([
+        TenderStatus.GM_PENDING,
+        TenderStatus.GM_ACCEPTED,
+      ]);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
     } catch (error) {
@@ -116,11 +122,14 @@ export default class Controller {
 
   protected readonly getTenderForCM = async (req: Request, res: Response) => {
     try {
-      const user = req.authUser
+      const user = req.authUser;
       const id = req.authUser._id;
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.COMPANY_MANAGER) {
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.COMPANY_MANAGER
+      ) {
         res.status(422).json({ message: "Unauthorize Request." });
-        return
+        return;
       }
       const tenderList = await getTenderByCompany(id);
       res.status(200).json({ message: "Tender List For CM", tenderList });
@@ -162,7 +171,7 @@ export default class Controller {
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
-        return
+        return;
       }
       const payloadValue: ITender = await this.createTenderSchema
         .validateAsync(payload)
@@ -182,9 +191,14 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.TENDER_MANAGER) {
-        res.status(422).json({ message: "Don't have access to generate the Tender." });
-        return
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER
+      ) {
+        res
+          .status(422)
+          .json({ message: "Don't have access to generate the Tender." });
+        return;
       }
       const newTender = await createTender(
         new Tender({
@@ -210,7 +224,7 @@ export default class Controller {
         `New tender ${payloadValue.name} has been created and assigned to you`
       );
 
-      const populatedTender = await getTenderById(newTender._id)
+      const populatedTender = await getTenderById(newTender._id);
       res.status(201).json(populatedTender);
       return;
     } catch (error) {
@@ -288,7 +302,7 @@ export default class Controller {
 
   protected readonly tenderGotTo = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -305,10 +319,12 @@ export default class Controller {
 
       if (!payloadValue) return;
 
-
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to assign." });
-        return
+        return;
       }
 
       const existingTender = await getTenderById(tenderId);
@@ -350,12 +366,12 @@ export default class Controller {
 
   protected readonly tenderAccepted = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.id;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
-        return
+        return;
       }
       const payloadValue: Partial<ITender> = await this.tenderAcceptedSchema
         .validateAsync(payload)
@@ -368,9 +384,12 @@ export default class Controller {
 
       if (!payloadValue) return;
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to accept." });
-        return
+        return;
       }
 
       const existingTender = await getTenderById(tenderId);
@@ -446,7 +465,7 @@ export default class Controller {
 
   protected readonly approveTender = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.id;
       const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
@@ -454,9 +473,14 @@ export default class Controller {
         return;
       }
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
-        res.status(422).json({ message: "Not have permission to approve tender." });
-        return
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
+        res
+          .status(422)
+          .json({ message: "Not have permission to approve tender." });
+        return;
       }
 
       if (existingTender.status !== TenderStatus.GM_ACCEPTED) {

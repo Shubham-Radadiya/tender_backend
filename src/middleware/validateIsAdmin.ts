@@ -6,7 +6,7 @@ export const validateIsAdmin = async (
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.isAdmin || !req.isGm) {
+  if (!req.isAdmin && !req.isGm) {
     res.status(403).json({ message: "Unauthorized request." }).end();
     return;
   }

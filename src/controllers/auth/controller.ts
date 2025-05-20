@@ -328,11 +328,19 @@ export default class Controller {
       const adminUser = req.authUser;
 
       // Check if the requesting user is an admin
-      if (adminUser.role !== UserRole.ADMIN && adminUser.role !== UserRole.GROUP_MANAGER) {
-        res.status(403).json({ message: "Only admin OR gm can impersonate users" });
+      if (
+        adminUser.role !== UserRole.ADMIN &&
+        adminUser.role !== UserRole.GROUP_MANAGER
+      ) {
+        res
+          .status(403)
+          .json({ message: "Only admin OR gm can impersonate users" });
         return;
       }
 
+      // if (adminUser.role !== UserRole.GROUP_MANAGER){
+      //   adminUser.managedCompanyManagers
+      // }
       // Get the user to impersonate
       const userToImpersonate = await getUserById(userId);
       if (!userToImpersonate) {

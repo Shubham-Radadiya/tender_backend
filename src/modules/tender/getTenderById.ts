@@ -43,7 +43,10 @@ export const getTenderById = async (_id: string) => {
 };
 
 export const getTenderByCompany = async (companyAssigned: string) => {
-  const tender = await TenderModel.find({ companyAssigned, status: TenderStatus.GM_APPROVED })
+  const tender = await TenderModel.find({
+    companyAssigned,
+    status: TenderStatus.GM_APPROVED,
+  })
     .populate("category")
     .populate("department")
     .lean();
