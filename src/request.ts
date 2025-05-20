@@ -5,4 +5,5 @@ export interface Request extends ExpressRequest {
   authUser?: IUser;
   files?: string;
   isAdmin?: boolean;
+  isGm?: boolean;
 }

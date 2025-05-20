@@ -58,6 +58,7 @@ export const validateAuthIdToken = async (
 
   req.authUser = userRawData;
   req.isAdmin = userRawData.role === "ADMIN";
+  req.isGm = userRawData.role === "GROUP_MANAGER";
   setGlobalContext("authUser", userRawData);
 
   next();

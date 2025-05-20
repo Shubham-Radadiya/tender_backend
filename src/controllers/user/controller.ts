@@ -11,6 +11,7 @@ import {
   updateUser,
   deleteUserById,
   getUser,
+  updateManyUser,
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
 import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
@@ -261,4 +262,25 @@ export default class Controller {
       return;
     }
   };
+
+  protected readonly approveUsers = async (req: Request, res: Response) => {
+    try {
+      const { userIds } = req.body;
+
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: 'userIds must be a non-empty array.' });
+      }
+
+      const fields = { 'companyDetails.adminApprove': true }
+      const result = await updateManyUser(userIds, fields)
+
+      return res.status(200).json({
+        message: `${result.modifiedCount} user(s) approved successfully.`,
+      });
+    } catch (error) {
+      console.error('Error in approveUsers:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  };
+
 }

@@ -8,3 +8,4 @@ export * from "./deleteUserById";
 export * from "./getPopulatedUser";
 export * from "./getGM";
 export * from "./getTM";
+export * from "./updateManyUser";
