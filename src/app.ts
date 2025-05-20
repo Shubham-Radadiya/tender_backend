@@ -1,97 +1,160 @@
 import express from "express";
-import * as path from "path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
-//controllers
+import { createServer } from "http";
+import { Server } from "socket.io";
+import { SocketService } from "./modules/socket/socket.service";
 import { validateAuthIdToken } from "./middleware/validateAuthUser";
 import Auth from "./controllers/auth";
 import User from "./controllers/user";
+import Chat from "./modules/chat";
 import Category from "./controllers/category";
-import Department from "./controllers/department";
-import Image from "./controllers/image";
-import Tender from "./controllers/tender";
-import Company from "./controllers/company";
-import TenderQuotation from "./controllers/tenderQuotation";
-import Notification from "./controllers/notification";
 import Bill from "./controllers/bill";
-import { ChatController } from "./modules/chat/controllers/chat.controller";
+import path from "path";
+import jwt from "jsonwebtoken";
+import { configDotenv } from "dotenv";
+
+configDotenv();
 
 export default class App {
-  public static instance: express.Application;
-  private static port: number;
-  public static start(port) {
-    this.instance = express();
-    this.port = port;
+  private static instance: express.Application;
+  private static httpServer: any;
+  private static io: Server;
 
-    // Add middlewares.
-    this.initializeMiddleware();
+  private constructor() {}
 
-    // Add controllers
-    this.initializeControllers();
+  public static getInstance(): express.Application {
+    if (!App.instance) {
+      App.instance = express();
+      App.initializeMiddleware();
+      App.initializeControllers();
+      App.initializeSocket();
+    }
+    return App.instance;
+  }
+
+  private static initializeSocket() {
+    // Create HTTP server
+    App.httpServer = createServer(App.instance);
+
+    // Initialize Socket.IO
+    App.io = new Server(App.httpServer, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+        credentials: true,
+      },
+      transports: ["websocket", "polling"],
+      path: "/socket.io/",
+      allowEIO3: true,
+    });
+
+    // Socket authentication middleware
+    App.io.use((socket, next) => {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        return next(new Error("Authentication required"));
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+        socket.data.user = decoded;
+        next();
+      } catch (err) {
+        next(new Error("Invalid token"));
+      }
+    });
+
+    // Socket connection handling
+    App.io.on("connection", (socket) => {
+      console.log("Client connected:", socket.id);
+
+      socket.on("join_room", (data, callback) => {
+        const { roomId } = data;
+        if (!roomId) {
+          callback({ error: "Room ID is required" });
+          return;
+        }
+        socket.join(roomId);
+        callback({ success: true, roomId });
+      });
+
+      socket.on("send_message", (data, callback) => {
+        const { roomId, content } = data;
+        if (!roomId || !content) {
+          callback({ error: "Room ID and content are required" });
+          return;
+        }
+        socket.to(roomId).emit("message_received", { roomId, content });
+        callback({ success: true });
+      });
+
+      socket.on("disconnect", () => {
+        console.log("Client disconnected:", socket.id);
+      });
+
+      socket.on("error", (error) => {
+        console.error("Socket error:", error);
+      });
+    });
+
+    // Initialize Socket Service
+    SocketService.getInstance().initialize(App.io);
+  }
+
+  public static listen(port: number): void {
+    App.httpServer.listen(port, () => {
+      console.log(`Server is running on http://localhost:${port}`);
+    });
+  }
+
+  private static initializeControllers() {
+    // Routes
+    this.instance.use("/api/auth", new Auth().router);
+    this.instance.use("/api/users", validateAuthIdToken, new User().router);
+    this.instance.use("/api/chat", validateAuthIdToken, new Chat().router);
+    this.instance.use(
+      "/api/category",
+      validateAuthIdToken,
+      new Category().router
+    );
+    this.instance.use("/api/bill", validateAuthIdToken, new Bill().router);
   }
 
   private static initializeMiddleware() {
     // CORS
     this.instance.use(
       cors({
-        origin: true,
+        origin: "*",
         credentials: true,
-        exposedHeaders: "x-auth-token",
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
       })
     );
 
-    // Cookie parser.
+    // Cookie parser
     this.instance.use(cookieParser(process.env.COOKIE_SECRET));
 
     // Body Parser
     this.instance.use(express.json({ limit: "50mb" }));
     this.instance.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-    // support json encoded bodies
+    // View engine setup
     this.instance.set("views", path.join(__dirname, "views"));
     this.instance.set("view engine", "ejs");
     this.instance.use(express.static(process.cwd() + "/public"));
 
-    // Add error handling middleware
-    this.instance.use((err, req, res, next) => {
-      console.error(err.stack);
-      res.status(500).json({ error: "Something broke!" });
-    });
-  }
-
-  private static initializeControllers() {
-    this.instance.use("/auth", new Auth().router);
-    this.instance.use("/user", validateAuthIdToken, new User().router);
-    this.instance.use("/category", validateAuthIdToken, new Category().router);
+    // Error handling middleware
     this.instance.use(
-      "/department",
-      validateAuthIdToken,
-      new Department().router
+      (
+        err: any,
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction
+      ) => {
+        console.error(err.stack);
+        res.status(500).json({ error: "Something broke!" });
+      }
     );
-    this.instance.use("/tender", validateAuthIdToken, new Tender().router);
-    this.instance.use(
-      "/tenderQuotation",
-      validateAuthIdToken,
-      new TenderQuotation().router
-    );
-    this.instance.use("/company", validateAuthIdToken, new Company().router);
-    this.instance.use("/image", validateAuthIdToken, new Image().router);
-    this.instance.use(
-      "/notification",
-      validateAuthIdToken,
-      new Notification().router
-    );
-    this.instance.use("/billing", validateAuthIdToken, new Bill().router);
-
-    // Initialize chat routes
-    const chatRouter = express.Router();
-    const chatController = new ChatController();
-
-    chatRouter.post("/", chatController.createChat);
-    chatRouter.get("/:chatId", chatController.getChatHistory);
-    chatRouter.get("/user/chats", chatController.getUserChats);
-
-    this.instance.use("/chat", validateAuthIdToken, chatRouter);
   }
 }

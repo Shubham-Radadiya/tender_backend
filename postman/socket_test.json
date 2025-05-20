@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "Socket.IO Test",
+    "description": "Socket.IO connection test collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Socket.IO Connection Test",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Load Socket.IO client",
+              "pm.sendRequest('https://cdn.socket.io/4.7.2/socket.io.min.js', function (err, res) {",
+              "    if (err) {",
+              "        console.error('Error loading Socket.IO client:', err);",
+              "        return;",
+              "    }",
+              "    pm.globals.set('socketIOClient', res.text());",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Create Socket.IO connection",
+              "const socket = io('{{baseUrl}}', {",
+              "    auth: {",
+              "        token: pm.environment.get('authToken')",
+              "    },",
+              "    transports: ['polling', 'websocket'],",
+              "    path: '/socket.io/'",
+              "});",
+              "",
+              "// Connection event handlers",
+              "socket.on('connect', () => {",
+              "    console.log('Connected to socket server');",
+              "    pm.test('Socket connection successful', function() {",
+              "        pm.expect(socket.connected).to.be.true;",
+              "    });",
+              "});",
+              "",
+              "socket.on('connect_error', (error) => {",
+              "    console.error('Connection error:', error);",
+              "    pm.test('Socket connection failed', function() {",
+              "        pm.expect(error).to.be.null;",
+              "    });",
+              "});",
+              "",
+              "socket.on('error', (error) => {",
+              "    console.error('Socket error:', error);",
+              "});",
+              "",
+              "// Test events",
+              "socket.on('room_joined', (data) => {",
+              "    console.log('Joined room:', data);",
+              "});",
+              "",
+              "socket.on('message_sent', (data) => {",
+              "    console.log('Message sent:', data);",
+              "});",
+              "",
+              "// Clean up on test completion",
+              "setTimeout(() => {",
+              "    if (socket.connected) {",
+              "        socket.disconnect();",
+              "    }",
+              "}, 5000);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "your_auth_token_here",
+      "type": "string"
+    }
+  ]
+}

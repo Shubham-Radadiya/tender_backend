@@ -12,12 +12,20 @@ export default class Chat {
   private initializeRoutes() {
     const controller = new Controller();
 
-    this.router.post("/", validateAuthIdToken, controller.createChat);
-    this.router.get("/:chatId", validateAuthIdToken, controller.getChatHistory);
+    // Chat room routes
+    this.router.post("/rooms", validateAuthIdToken, controller.createChatRoom);
+    this.router.get("/rooms", validateAuthIdToken, controller.getUserRooms);
     this.router.get(
-      "/user/chats",
+      "/rooms/:roomId/messages",
       validateAuthIdToken,
-      controller.getUserChats
+      controller.getRoomMessages
+    );
+
+    // Message routes
+    this.router.put(
+      "/messages/:messageId/read",
+      validateAuthIdToken,
+      controller.markMessageAsRead
     );
   }
 }

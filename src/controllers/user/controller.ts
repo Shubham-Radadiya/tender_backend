@@ -11,6 +11,7 @@ import {
   updateUser,
   deleteUserById,
   getUser,
+  searchUser,
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
 import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
@@ -106,6 +107,7 @@ export default class Controller {
   protected readonly get = async (req: Request, res: Response) => {
     try {
       const userId = req.params.id;
+      const { name } = req.query;
       if (userId) {
         const user = await getUserById(userId);
         const isProfileComplete = await isUserProfileComplete(user);
@@ -115,7 +117,7 @@ export default class Controller {
           .json({ message: "User Listed", user, isProfileComplete });
         return;
       }
-      const userList = await getUser();
+      const userList = await searchUser(name as string);
       const enrichedList = await Promise.all(
         userList.map(async (user) => ({
           ...user,

@@ -1,5 +1,5 @@
-import { Chat, IChat } from "../models/chat.model";
 import mongoose from "mongoose";
+import { ChatRoomModel, IChatRoom, MessageModel, IMessage } from "../models";
 import { SocketService } from "../../socket/socket.service";
 
 export class ChatService {
@@ -17,83 +17,136 @@ export class ChatService {
     return ChatService.instance;
   }
 
-  async createChat(participants: string[]): Promise<IChat> {
+  async createChatRoom(
+    participants: string[],
+    name: string,
+    type: "private" | "group" = "private"
+  ): Promise<IChatRoom> {
     try {
       const validParticipants = participants.map(
         (id: string) => new mongoose.Types.ObjectId(id)
       );
-
-      const newChat = await Chat.create({
+      const newRoom = await ChatRoomModel.create({
+        name,
         participants: validParticipants,
-        messages: [],
+        type,
       });
 
-      // Notify all participants about new chat
       participants.forEach((userId) => {
-        this.socketService.emitToUser(userId, "new_chat", newChat);
+        this.socketService.emitToUser(userId, "room:new", newRoom);
       });
 
-      return newChat;
+      return newRoom;
     } catch (error) {
       throw error;
     }
   }
 
-  async saveMessage(
-    chatId: string,
+  async sendMessage(
+    roomId: string,
     senderId: string,
-    content: string
-  ): Promise<IChat> {
+    content: string,
+    type: "text" | "image" | "file" = "text"
+  ): Promise<IMessage> {
     try {
-      const message = {
+      const message = await MessageModel.create({
+        roomId: new mongoose.Types.ObjectId(roomId),
         sender: new mongoose.Types.ObjectId(senderId),
         content,
-        timestamp: new Date(),
-      };
+        type,
+        readBy: [new mongoose.Types.ObjectId(senderId)],
+      });
 
-      const updatedChat = await Chat.findByIdAndUpdate(
-        chatId,
-        {
-          $push: { messages: message },
-          $set: { updatedAt: new Date() },
-        },
-        { new: true }
-      ).populate("messages.sender", "name email");
+      // Update last message in chat room
+      await ChatRoomModel.findByIdAndUpdate(roomId, {
+        lastMessage: message._id,
+      });
 
-      if (!updatedChat) {
-        throw new Error("Chat not found");
-      }
+      // Emit to room
+      this.socketService.emitToRoom(roomId, "message:new", message);
 
-      return updatedChat;
+      return message;
     } catch (error) {
       throw error;
     }
   }
 
-  async getChatHistory(chatId: string): Promise<IChat> {
+  async getRoomMessages(
+    roomId: string,
+    page: number = 1,
+    limit: number = 50
+  ): Promise<{ messages: IMessage[]; total: number }> {
     try {
-      const chat = await Chat.findById(chatId)
-        .populate("participants", "name email")
-        .populate("messages.sender", "name email");
+      const skip = (page - 1) * limit;
 
-      if (!chat) {
-        throw new Error("Chat not found");
-      }
+      const [messages, total] = await Promise.all([
+        MessageModel.find({ roomId })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate("sender", "name email")
+          .populate("readBy", "name email"),
+        MessageModel.countDocuments({ roomId }),
+      ]);
 
-      return chat;
+      return { messages, total };
     } catch (error) {
       throw error;
     }
   }
 
-  async getUserChats(userId: string): Promise<IChat[]> {
+  async getUserRooms(userId: string): Promise<IChatRoom[]> {
     try {
-      const chats = await Chat.find({ participants: userId })
+      const rooms = await ChatRoomModel.find({ participants: userId })
         .populate("participants", "name email")
-        .populate("messages.sender", "name email")
+        .populate("lastMessage")
         .sort({ updatedAt: -1 });
 
-      return chats;
+      return rooms;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async markMessageAsRead(
+    messageId: string,
+    userId: string
+  ): Promise<IMessage> {
+    try {
+      const message = await MessageModel.findByIdAndUpdate(
+        messageId,
+        {
+          $addToSet: { readBy: new mongoose.Types.ObjectId(userId) },
+        },
+        { new: true }
+      ).populate("readBy", "name email");
+
+      if (!message) {
+        throw new Error("Message not found");
+      }
+
+      return message;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getUnreadMessageCount(
+    userId: string
+  ): Promise<{ [roomId: string]: number }> {
+    try {
+      const rooms = await ChatRoomModel.find({ participants: userId });
+      const unreadCounts: { [roomId: string]: number } = {};
+
+      for (const room of rooms) {
+        const count = await MessageModel.countDocuments({
+          roomId: room._id,
+          readBy: { $ne: new mongoose.Types.ObjectId(userId) },
+        });
+        unreadCounts[room._id.toString()] = count;
+      }
+
+      return unreadCounts;
     } catch (error) {
       throw error;
     }

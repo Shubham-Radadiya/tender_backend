@@ -5,13 +5,24 @@ import { validateAuthIdToken } from "../../../middleware/validateAuthUser";
 const router = Router();
 const chatController = new ChatController();
 
-// Create a new chat
-router.post("/", validateAuthIdToken, chatController.createChat);
+// Create a new chat room
+router.post("/rooms", validateAuthIdToken, chatController.createChatRoom);
 
-// Get chat history
-router.get("/:chatId", validateAuthIdToken, chatController.getChatHistory);
+// Get user's chat rooms with unread counts
+router.get("/rooms", validateAuthIdToken, chatController.getUserRooms);
 
-// Get all chats for a user
-router.get("/user/chats", validateAuthIdToken, chatController.getUserChats);
+// Get room messages with pagination
+router.get(
+  "/rooms/:roomId/messages",
+  validateAuthIdToken,
+  chatController.getRoomMessages
+);
+
+// Mark message as read
+router.put(
+  "/messages/:messageId/read",
+  validateAuthIdToken,
+  chatController.markMessageAsRead
+);
 
 export default router;

@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "Tender App Chat API",
+    "description": "API collection for chat functionality including REST endpoints and Socket.IO events",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Chat Rooms",
+      "item": [
+        {
+          "name": "Create Chat Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"participants\": [\"userId1\", \"userId2\"],\n    \"name\": \"Project Discussion\",\n    \"type\": \"GROUP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/rooms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "rooms"]
+            },
+            "description": "Create a new chat room with specified participants"
+          }
+        },
+        {
+          "name": "Get User Rooms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/rooms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "rooms"]
+            },
+            "description": "Get all chat rooms for the authenticated user"
+          }
+        },
+        {
+          "name": "Get Room Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/rooms/:roomId/messages?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "rooms", ":roomId", "messages"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "roomId",
+                  "value": "roomId",
+                  "description": "ID of the chat room"
+                }
+              ]
+            },
+            "description": "Get messages for a specific chat room with pagination"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Mark Message as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/messages/:messageId/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "messages", ":messageId", "read"],
+              "variable": [
+                {
+                  "key": "messageId",
+                  "value": "messageId",
+                  "description": "ID of the message to mark as read"
+                }
+              ]
+            },
+            "description": "Mark a specific message as read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Socket.IO Events",
+      "description": "Socket.IO event handlers for real-time chat functionality",
+      "item": [
+        {
+          "name": "Connect to Socket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const socket = io('{{baseUrl}}', {",
+                  "  auth: {",
+                  "    token: pm.environment.get('authToken')",
+                  "  },",
+                  "  transports: ['websocket', 'polling'],",
+                  "  path: '/socket.io/',",
+                  "  reconnection: true,",
+                  "  reconnectionAttempts: 5,",
+                  "  reconnectionDelay: 1000",
+                  "});",
+                  "",
+                  "socket.on('connect', () => {",
+                  "  console.log('Connected to socket server');",
+                  "});",
+                  "",
+                  "socket.on('connect_error', (error) => {",
+                  "  console.error('Connection error:', error);",
+                  "});",
+                  "",
+                  "socket.on('error', (error) => {",
+                  "  console.error('Socket error:', error);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Join Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "socket.emit('join_room', {",
+                  "  roomId: '{{roomId}}'",
+                  "});",
+                  "",
+                  "socket.on('room_joined', (data) => {",
+                  "  console.log('Joined room:', data);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "socket.emit('send_message', {",
+                  "  roomId: '{{roomId}}',",
+                  "  content: 'Hello, this is a test message',",
+                  "  type: 'TEXT'",
+                  "});",
+                  "",
+                  "socket.on('message_sent', (data) => {",
+                  "  console.log('Message sent:', data);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark Message as Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "socket.emit('mark_read', {",
+                  "  messageId: '{{messageId}}'",
+                  "});",
+                  "",
+                  "socket.on('message_read', (data) => {",
+                  "  console.log('Message marked as read:', data);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Typing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "socket.emit('typing', {",
+                  "  roomId: '{{roomId}}',",
+                  "  isTyping: true",
+                  "});",
+                  "",
+                  "socket.on('user_typing', (data) => {",
+                  "  console.log('User typing status:', data);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "your_auth_token_here",
+      "type": "string"
+    },
+    {
+      "key": "roomId",
+      "value": "room_id_here",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "message_id_here",
+      "type": "string"
+    }
+  ]
+}
