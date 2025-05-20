@@ -255,6 +255,19 @@ export default class Controller {
         }
       }
 
+      let tenderDetails;
+      if (payloadValue?.tenderFee || payloadValue?.receipts) {
+        tenderDetails = await getTenderById(existingTenderQuotation.tenderId);
+        if (tenderDetails.status !== TenderStatus.GM_APPROVED) {
+          res
+            .status(404)
+            .json({
+              message:
+                "Tender Fee Or Receipt can't be added before GM Approval",
+            });
+          return;
+        }
+      }
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );
@@ -263,9 +276,6 @@ export default class Controller {
         payloadValue?.tenderFee &&
         payloadValue?.receipts
       ) {
-        const tenderDetails = await getTenderById(
-          existingTenderQuotation.tenderId
-        );
         await sendNotification(
           tenderDetails.companyAssigned,
           tenderDetails._id,
