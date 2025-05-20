@@ -39,18 +39,18 @@ export default class Controller {
   });
 
   private readonly updateTenderQuotationSchema = Joi.object({
-    tenderId: Joi.string(),
-    companyId: Joi.string(),
-    quotationNumber: Joi.number(),
-    tenderFee: Joi.number(),
-    emd: Joi.number(),
-    receipts: Joi.array().items(Joi.string()),
+    tenderId: Joi.string().optional(),
+    companyId: Joi.string().optional(),
+    quotationNumber: Joi.number().optional(),
+    tenderFee: Joi.number().optional(),
+    emd: Joi.number().optional(),
+    receipts: Joi.array().items(Joi.string()).optional(),
     itemRates: Joi.array().items(
       Joi.object({
-        itemId: Joi.string().required(),
-        rate: Joi.number().required(),
-        amount: Joi.number(),
-      })
+        itemId: Joi.string().optional(),
+        rate: Joi.number().optional(),
+        amount: Joi.number().optional(),
+      }).optional()
     ),
   });
 
@@ -169,7 +169,9 @@ export default class Controller {
         new TenderQuotation({ ...payloadValue })
       );
 
-      const populatedTQ = await getPopulatedTenderQuotationById(newQuotation._id)
+      const populatedTQ = await getPopulatedTenderQuotationById(
+        newQuotation._id
+      );
       res.status(201).json({
         message: "Quotation created successfully",
         quotation: populatedTQ,
@@ -224,15 +226,15 @@ export default class Controller {
         return;
       }
 
-      if (payloadValue?.companyId.toString()) {
-        if (
-          existingTenderQuotation?.companyId.toString() !==
-          payloadValue?.companyId.toString()
-        ) {
-          res.status(404).json({ message: "Mis-Match Company Id." });
-          return;
-        }
-      }
+      // if (payloadValue?.companyId.toString()) {
+      //   if (
+      //     existingTenderQuotation?.companyId.toString() !==
+      //     payloadValue?.companyId.toString()
+      //   ) {
+      //     res.status(404).json({ message: "Mis-Match Company Id." });
+      //     return;
+      //   }
+      // }
       const mergedTenderQuotation = {
         ...existingTenderQuotation,
         ...payloadValue,
@@ -256,7 +258,9 @@ export default class Controller {
           `New Tender ${tenderDetails.name} has been created and assigned to you`
         );
       }
-      const populatedTQ = await getPopulatedTenderQuotationById(updatedTenderQuotation._id)
+      const populatedTQ = await getPopulatedTenderQuotationById(
+        updatedTenderQuotation._id
+      );
       res.status(200).json({ updatedTenderQuotation: populatedTQ });
       return;
     } catch (error) {
