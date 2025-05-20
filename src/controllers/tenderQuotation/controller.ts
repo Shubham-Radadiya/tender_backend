@@ -240,6 +240,21 @@ export default class Controller {
         ...payloadValue,
       };
 
+      if (payloadValue.itemRates) {
+        const companyData = await getUserById(mergedTenderQuotation.companyId);
+        let totalQuotationAmount = 0;
+        payloadValue.itemRates.forEach((item) => {
+          totalQuotationAmount += item.amount || 0;
+        });
+
+        if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
+          res.status(422).json({
+            message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
+          });
+          return;
+        }
+      }
+
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );
