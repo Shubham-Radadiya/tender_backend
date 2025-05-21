@@ -5,7 +5,7 @@ export const getUser = async (role?: string, adminApprove?: boolean) => {
   const filter = role
     ? {
         role,
-        "companyDetails.adminApprove": adminApprove,
+        // "companyDetails.adminApprove": adminApprove,
       }
     : {};
   const user = await UserModel.find(filter);

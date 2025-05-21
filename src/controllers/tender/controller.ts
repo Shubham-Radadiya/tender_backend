@@ -75,6 +75,17 @@ export default class Controller {
     }),
   });
 
+  private readonly tenderAcceptedByCMSchema = Joi.object({
+    status: Joi.string().valid("CM_ACCEPTED", "CM_DECLINED").required(),
+    declineReason: Joi.when("status", {
+      is: "CM_DECLINED",
+      then: Joi.string().required().messages({
+        "any.required": "Reason is required when status is DECLINED",
+      }),
+      otherwise: Joi.optional(),
+    }),
+  });
+
   protected readonly getTender = async (req: Request, res: Response) => {
     try {
       const tenderId = req.params.id;
@@ -108,6 +119,7 @@ export default class Controller {
       const tenderList = await getTenderByStatus([
         TenderStatus.GM_PENDING,
         TenderStatus.GM_ACCEPTED,
+        TenderStatus.TM_PENDING,
       ]);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
@@ -517,33 +529,117 @@ export default class Controller {
       const updatedTender = await updateTender(
         new Tender({
           ...existingTender,
-          status: TenderStatus.GM_APPROVED,
+          status: TenderStatus.TM_PENDING,
           history: [
             ...(existingTender.history || []),
             {
-              action: `Tender approved and assigned to company ${companyDetails.firstName} ${companyDetails.lastName}`,
+              action: `Tender approved By GM and assigned to TM`,
               by: req.authUser._id,
               date: new Date(),
             },
           ],
         })
       );
+      // company ${companyDetails.firstName} ${companyDetails.lastName}
 
       const getTMData = await getTM();
       await sendNotification(
         getTMData._id,
         existingTender._id,
         NotificationType.TENDER_APPROVED,
-        `Tender approved by the Group Manager`
+        `Tender approved by the group manager and assigned back to you.`
       );
 
       res.status(200).json({
-        message: "Tender approved successfully",
+        message: "Tender approved by GM successfully and assigned back to TM.",
         tender: updatedTender,
       });
       return;
     } catch (error) {
       console.log("Error in approveTender", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
+  protected readonly tenderAcceptedByCM = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const authUser = req.authUser;
+      const tenderId = req.params.id;
+      const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+        return;
+      }
+      const payloadValue: Partial<ITender> = await this.tenderAcceptedByCMSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          res.status(422).json(isError(e) ? e : { message: e.message });
+          return null;
+        });
+
+      if (!payloadValue) return;
+
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.COMPANY_MANAGER
+      ) {
+        res.status(422).json({ message: "Not have permission to accept." });
+        return;
+      }
+
+      const existingTender = await getTenderById(tenderId);
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
+
+      const action =
+        payloadValue?.status === "CM_ACCEPTED"
+          ? "Tender accepted by Company Manager"
+          : `Tender declined by Company Manager. Reason: ${payloadValue?.declineReason}`;
+
+      const mergedTender = {
+        ...existingTender,
+        status: payloadValue?.status,
+        declineReason:
+          payloadValue?.status === "CM_DECLINED"
+            ? payloadValue?.declineReason
+            : "",
+        history: [
+          ...(existingTender.history || []),
+          {
+            action,
+            by: req.authUser._id,
+            date: new Date(),
+          },
+        ],
+      };
+
+      const updated = await updateTender(new Tender(mergedTender));
+
+      const getTMData = await getTM();
+      const notificationType =
+        payloadValue?.status === "CM_ACCEPTED"
+          ? NotificationType.TENDER_ACCEPTED
+          : NotificationType.TENDER_DECLINED;
+
+      await sendNotification(
+        getTMData._id,
+        existingTender._id,
+        notificationType,
+        action
+      );
+
+      res.status(200).json(updated);
+      return;
+    } catch (error) {
+      console.log("Error in Tender Accepted By CM", error);
       res.status(500).json({ message: error.message });
       return;
     }

@@ -90,17 +90,18 @@ export default class Controller {
     //   )
     //   .optional(),
     companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-      annualTenderCap: Joi.number(),
+      companyName: Joi.string().optional(),
+      businessEmail: Joi.string().email().optional(),
+      aadharNumber: Joi.string().optional(),
+      panNumber: Joi.string().optional(),
+      userName: Joi.string().optional(),
+      companyPhone: Joi.string().optional(),
+      gstUsername: Joi.string().optional(),
+      gstNumber: Joi.string().optional(),
+      ifscCode: Joi.string().optional(),
+      website: Joi.string().optional(),
+      annualTenderCap: Joi.number().optional(),
+      adminApprove: Joi.boolean().optional(),
     }).optional(),
   });
 
@@ -232,10 +233,18 @@ export default class Controller {
         return;
       }
 
-      const updated = await updateUser(
-        new User({ ...existingUser, ...payloadValue })
+      await updateUser(
+        new User({
+          ...existingUser,
+          ...payloadValue,
+          companyDetails: {
+            ...existingUser.companyDetails,
+            ...payloadValue.companyDetails,
+          },
+        })
       );
-      res.status(200).json(updated);
+      const updatedUser = await getUserById(userId);
+      res.status(200).json({ updated: updatedUser });
       return;
     } catch (error) {
       console.log("Error in updateUser", error);
@@ -268,19 +277,20 @@ export default class Controller {
       const { userIds } = req.body;
 
       if (!Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({ message: 'userIds must be a non-empty array.' });
+        return res
+          .status(400)
+          .json({ message: "userIds must be a non-empty array." });
       }
 
-      const fields = { 'companyDetails.adminApprove': true }
-      const result = await updateManyUser(userIds, fields)
+      const fields = { "companyDetails.adminApprove": true };
+      const result = await updateManyUser(userIds, fields);
 
       return res.status(200).json({
         message: `${result.modifiedCount} user(s) approved successfully.`,
       });
     } catch (error) {
-      console.error('Error in approveUsers:', error);
+      console.error("Error in approveUsers:", error);
       return res.status(500).json({ message: error.message });
     }
   };
-
 }

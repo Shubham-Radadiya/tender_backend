@@ -6,6 +6,8 @@ import {
   getTenderById,
   // getTenderForGM,
   ITender,
+  Tender,
+  updateTender,
 } from "../../modules/tender";
 import { TenderStatus } from "../../modules/tender/schema";
 import {
@@ -258,24 +260,29 @@ export default class Controller {
       let tenderDetails;
       if (payloadValue?.tenderFee || payloadValue?.receipts) {
         tenderDetails = await getTenderById(existingTenderQuotation.tenderId);
-        if (tenderDetails.status !== TenderStatus.GM_APPROVED) {
-          res
-            .status(404)
-            .json({
-              message:
-                "Tender Fee Or Receipt can't be added before GM Approval",
-            });
+        if (tenderDetails.status !== TenderStatus.TM_PENDING) {
+          res.status(404).json({
+            message: "Tender Fee Or Receipt can't be added before GM Approval",
+          });
           return;
         }
       }
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );
+
       if (
-        authUser.role !== UserRole.TENDER_MANAGER &&
+        authUser.role === UserRole.TENDER_MANAGER &&
         payloadValue?.tenderFee &&
-        payloadValue?.receipts
+        payloadValue?.receipts &&
+        tenderDetails.companyAssigned.toString() ==
+          existingTenderQuotation.companyId.toString()
       ) {
+        const mergedTender = {
+          ...tenderDetails,
+          status: TenderStatus.CM_PENDING,
+        };
+        const updated = await updateTender(new Tender(mergedTender));
         await sendNotification(
           tenderDetails.companyAssigned,
           tenderDetails._id,

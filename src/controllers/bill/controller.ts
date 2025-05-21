@@ -40,7 +40,7 @@ export default class Controller {
   });
 
   private readonly updateBillStatusSchema = Joi.object({
-    status: Joi.string().required(),
+    status: Joi.string().valid("SAVED", "PAID").required(),
   });
 
   protected readonly getBill = async (req: Request, res: Response) => {
@@ -63,22 +63,28 @@ export default class Controller {
     }
   };
 
-  protected readonly getBillByTenderId = async (req: Request, res: Response) => {
+  protected readonly getBillByTenderId = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.tenderId;
 
       if (!tenderId) {
         res.status(422).json({ message: "TenderId not found." });
         return;
       }
-      const existingTender = await getTenderById(tenderId)
+      const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
         res.status(422).json({ message: "Invalid TenderId" });
         return;
       }
 
-      const billList = await getBillsByCompanyAndTenderId(authUser._id, tenderId);
+      const billList = await getBillsByCompanyAndTenderId(
+        authUser._id,
+        tenderId
+      );
       res.status(200).json({ message: "Bill Listed", billList });
       return;
     } catch (error) {
@@ -90,10 +96,9 @@ export default class Controller {
     }
   };
 
-
   protected readonly createBill = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const payload = { ...req.body, companyId: req.authUser._id };
 
       if (!payload) {
@@ -119,17 +124,19 @@ export default class Controller {
       }
       if (authUser.role !== UserRole.COMPANY_MANAGER) {
         res.status(422).json({ message: "Not have permission to generate." });
-        return
+        return;
       }
 
-      const existingTender = await getTenderById(payload.tenderId)
+      const existingTender = await getTenderById(payload.tenderId);
       if (!existingTender) {
         res.status(422).json({ message: "Invalid Tender." });
-        return
+        return;
       }
-      if (existingTender.companyAssigned.toString() !== authUser._id.toString()) {
+      if (
+        existingTender.companyAssigned.toString() !== authUser._id.toString()
+      ) {
         res.status(422).json({ message: "Not have permission to generate." });
-        return
+        return;
       }
       const tenderAmount = await getTenderQuotationByTenderId(payload.tenderId);
       const totalAmount = tenderAmount?.itemRates?.reduce((sum, item) => {
@@ -145,12 +152,15 @@ export default class Controller {
 
       if (totalBillAmount + payloadValue.amount > totalAmount) {
         res.status(422).json({
-          message: `The amount is too large you can not add more then ${totalAmount - totalBillAmount
-            }.`,
+          message: `The amount is too large you can not add more then ${
+            totalAmount - totalBillAmount
+          }.`,
         });
         return;
       }
-      const newBill = await createBill(new Bill({ ...payloadValue, status: BillStatus.SAVED }));
+      const newBill = await createBill(
+        new Bill({ ...payloadValue, status: BillStatus.SAVED })
+      );
       res.status(201).json(newBill);
       return;
     } catch (error) {
@@ -207,7 +217,7 @@ export default class Controller {
 
   protected readonly updateBillStatus = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const billId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -240,9 +250,8 @@ export default class Controller {
 
       if (existingBill.companyId.toString() !== authUser._id.toString()) {
         res.status(422).json({ message: "Not have permission to update." });
-        return
+        return;
       }
-
 
       const updated = await updateBill(
         new Bill({ ...existingBill, ...payloadValue })
