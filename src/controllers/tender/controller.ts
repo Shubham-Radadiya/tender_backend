@@ -562,6 +562,40 @@ export default class Controller {
     }
   };
 
+  protected readonly passTenderToCM = async (req: Request, res: Response) => {
+    try {
+      const authUser = req.authUser
+      const tenderId = req.params.id
+      const tenderDetails = await getTenderById(tenderId)
+      if (!tenderDetails) {
+        res.status(500).json({ message: "Invalid Tender Id." });
+        return;
+      }
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.TENDER_MANAGER
+      ) {
+        res.status(422).json({ message: "Not have permission to pass." });
+        return;
+      }
+      const mergedTender = {
+        ...tenderDetails,
+        status: TenderStatus.CM_PENDING,
+      };
+      await updateTender(new Tender(mergedTender));
+      await sendNotification(
+        tenderDetails.companyAssigned,
+        tenderDetails._id,
+        NotificationType.TENDER_APPROVED_BY_TM,
+        `New Tender ${tenderDetails.name} has been created and assigned to you`
+      );
+    } catch (error) {
+      console.log("Error in assignTenderToCM", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  }
+
   protected readonly tenderAcceptedByCM = async (
     req: Request,
     res: Response

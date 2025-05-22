@@ -271,25 +271,6 @@ export default class Controller {
         new TenderQuotation(mergedTenderQuotation)
       );
 
-      if (
-        authUser.role === UserRole.TENDER_MANAGER &&
-        payloadValue?.tenderFee &&
-        payloadValue?.receipts &&
-        tenderDetails.companyAssigned.toString() ==
-          existingTenderQuotation.companyId.toString()
-      ) {
-        const mergedTender = {
-          ...tenderDetails,
-          status: TenderStatus.CM_PENDING,
-        };
-        const updated = await updateTender(new Tender(mergedTender));
-        await sendNotification(
-          tenderDetails.companyAssigned,
-          tenderDetails._id,
-          NotificationType.TENDER_APPROVED_BY_TM,
-          `New Tender ${tenderDetails.name} has been created and assigned to you`
-        );
-      }
       const populatedTQ = await getPopulatedTenderQuotationById(
         updatedTenderQuotation._id
       );
