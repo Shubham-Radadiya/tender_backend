@@ -15,80 +15,27 @@ import {
 
 export default class Controller {
   private readonly createPartyWorkSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    dob: Joi.date().required(),
-    address: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .required(),
-    password: Joi.string()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      })
-      .required(),
-    phoneNumber: Joi.string().required(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .required(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
+    partyId: Joi.string().required(),
+    tenderId: Joi.string().required(),
+    workTitle: Joi.string().required(),
+    workDescription: Joi.string().optional(),
+    dueDate: Joi.date().required(),
+    totalAmount: Joi.number().required(),
+    status: Joi.string()
+      .valid("progress", "completed", "terminated")
+      .default("progress"),
   });
 
   private readonly updatePartyWorkSchema = Joi.object({
-    firstName: Joi.string().optional(),
-    lastName: Joi.string().optional(),
-    dob: Joi.date().optional(),
-    address: Joi.string().optional(),
-    city: Joi.string().optional(),
-    state: Joi.string().optional(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
+    partyId: Joi.string().optional(),
+    tenderId: Joi.string().optional(),
+    workTitle: Joi.string().optional(),
+    workDescription: Joi.string().optional(),
+    dueDate: Joi.date().optional(),
+    totalAmount: Joi.number().optional(),
+    status: Joi.string()
+      .valid("progress", "completed", "terminated")
       .optional(),
-    password: Joi.string().min(6).optional(),
-    phoneNumber: Joi.string().optional(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .optional(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
   });
 
   protected readonly getPartyWork = async (req: Request, res: Response) => {
@@ -99,8 +46,19 @@ export default class Controller {
         res.status(200).json({ message: "PartyWork Listed", partyWork });
         return;
       }
-      const partyWorkList = await getPartyWork();
-      res.status(200).json({ message: "PartyWork Listed", partyWorkList });
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      const { partyWorkList, totalCount } = await getPartyWork(page, limit);
+      res.status(200).json({
+        message: "PartyWork Listed",
+        partyWorkList,
+        pagination: {
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          currentPage: page,
+          pageSize: limit,
+        },
+      });
       return;
     } catch (error) {
       console.log("Error in getPartyWork", error);

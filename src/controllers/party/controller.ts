@@ -72,13 +72,25 @@ export default class Controller {
   protected readonly getParty = async (req: Request, res: Response) => {
     try {
       const partyId = req.params.id;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+
       if (partyId) {
         const party = await getPartyById(partyId);
         res.status(200).json({ message: "Party Listed", party });
         return;
       }
-      const partyList = await getParty();
-      res.status(200).json({ message: "Party Listed", partyList });
+      const { partyList, totalCount } = await getParty(page, limit);
+      res.status(200).json({
+        message: "Party Listed",
+        partyList,
+        pagination: {
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          currentPage: page,
+          pageSize: limit,
+        },
+      });
       return;
     } catch (error) {
       console.log("Error in getParty", error);

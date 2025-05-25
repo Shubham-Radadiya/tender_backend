@@ -1,20 +1,23 @@
 import { Schema, model } from "mongoose";
 import { IPartyWork } from "../types";
 
-const partyWork = new Schema<IPartyWork>(
+const PartyWorkSchema: Schema = new Schema(
   {
-    partyId: { type: Schema.Types.ObjectId, ref: "Party" },
-    description: { type: String },
-    quantity: { type: Number },
-    unit: { type: String },
-    rate: { type: Number },
-    amount: { type: Number },
-    total: { type: Number },
-    billUpload: { type: String }, // path or link
-    reminderDate: { type: Date },
-    isPaid: { type: Boolean, default: false },
+    partyId: { type: Schema.Types.ObjectId, ref: "Party", required: true },
+    tenderId: { type: Schema.Types.ObjectId, ref: "Tender", required: true },
+    workTitle: { type: String, required: true },
+    workDescription: { type: String },
+    dueDate: { type: Date, required: true },
+    totalAmount: { type: Number, required: true },
+    status: {
+      type: String,
+      enum: ["progress", "completed", "terminated"],
+      default: "progress",
+      required: true,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
-
-export const PartyWorkModel = model<IPartyWork>("partyWork", partyWork);
+export const PartyWorkModel = model<IPartyWork>("PartyWork", PartyWorkSchema);
