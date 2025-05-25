@@ -15,80 +15,58 @@ import {
 
 export default class Controller {
   private readonly createPartySchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    dob: Joi.date().required(),
-    address: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .required(),
-    password: Joi.string()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      })
-      .required(),
-    phoneNumber: Joi.string().required(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .required(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
+    name: Joi.string().required().trim(),
+    mobileNo: Joi.string()
+      .pattern(/^\+\d{1,3}\d{7,15}$/)
+      .required()
+      .messages({
+        "string.pattern.base":
+          "Mobile number must be in E.164 format (e.g., +919876543210).",
+      }),
+    gstNo: Joi.string()
+      .optional()
+      .pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/)
+      .messages({
+        "string.pattern.base": "GST number format is invalid.",
+      }),
+    panNo: Joi.string()
+      .optional()
+      .pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/)
+      .messages({
+        "string.pattern.base": "PAN number format is invalid.",
+      }),
+    address: Joi.string().optional().trim(),
+    createdAt: Joi.date()
+      .optional()
+      .default(() => new Date()),
+    updatedAt: Joi.date().optional(),
   });
 
   private readonly updatePartySchema = Joi.object({
-    firstName: Joi.string().optional(),
-    lastName: Joi.string().optional(),
-    dob: Joi.date().optional(),
-    address: Joi.string().optional(),
-    city: Joi.string().optional(),
-    state: Joi.string().optional(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .optional(),
-    password: Joi.string().min(6).optional(),
-    phoneNumber: Joi.string().optional(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .optional(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
+    name: Joi.string().optional().trim(),
+    mobileNo: Joi.string()
+      .pattern(/^\+\d{1,3}\d{7,15}$/)
+      .required()
+      .messages({
+        "string.pattern.base":
+          "Mobile number must be in E.164 format (e.g., +919876543210).",
+      }),
+    gstNo: Joi.string()
+      .optional()
+      .pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/)
+      .messages({
+        "string.pattern.base": "GST number format is invalid.",
+      }),
+    panNo: Joi.string()
+      .optional()
+      .pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/)
+      .messages({
+        "string.pattern.base": "PAN number format is invalid.",
+      }),
+    address: Joi.string().optional().trim(),
+    updatedAt: Joi.date()
+      .optional()
+      .default(() => new Date()),
   });
 
   protected readonly getParty = async (req: Request, res: Response) => {
@@ -136,7 +114,9 @@ export default class Controller {
         return;
       }
 
-      const newParty = await createParty(new Party({ ...payloadValue }));
+      const newParty = await createParty(
+        new Party({ ...payloadValue, createdBy: req.authUser._id })
+      );
       res.status(201).json(newParty);
       return;
     } catch (error) {
