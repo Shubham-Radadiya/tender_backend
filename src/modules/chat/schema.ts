@@ -3,29 +3,43 @@ import { Schema } from "mongoose";
 export const messageSchema = new Schema({
   sender: {
     type: Schema.Types.ObjectId,
-    ref: "User",
+    ref: "user",
     required: true,
   },
   content: {
     type: String,
     required: true,
   },
+  roomId: {
+    type: Schema.Types.ObjectId,
+    ref: "ChatRoom",
+    required: true,
+  },
+  readBy: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "user",
+    },
+  ],
   timestamp: {
     type: Date,
     default: Date.now,
   },
 });
 
-export const chatSchema = new Schema(
+export const chatRoomSchema = new Schema(
   {
+    name: {
+      type: String,
+      required: true,
+    },
     participants: [
       {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        ref: "user",
         required: true,
       },
     ],
-    messages: [messageSchema],
   },
   {
     timestamps: true,

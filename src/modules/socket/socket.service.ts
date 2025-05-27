@@ -78,6 +78,22 @@ export class SocketService {
         this.userRooms.set(userId, new Set());
       }
       this.userRooms.get(userId)?.add(roomId);
+
+      // Get message history
+      this.getRoomMessages(roomId).then((messages) => {
+        socket.emit("message:history", messages);
+      });
+
+      // Notify others about new user
+      socket.to(roomId).emit("user:joined", {
+        userId,
+        socketId: socket.id,
+      });
+
+      // Get connected users in room
+      this.getConnectedUsersInRoom(roomId).then((users) => {
+        socket.emit("room:users", users);
+      });
     }
     console.log(`Socket ${socket.id} joined room ${roomId}`);
   }
@@ -164,6 +180,17 @@ export class SocketService {
   private handleDisconnection(socket: Socket) {
     const userId = this.getUserIdBySocketId(socket.id);
     if (userId) {
+      // Notify all rooms user was in
+      const userRooms = this.userRooms.get(userId);
+      if (userRooms) {
+        userRooms.forEach((roomId) => {
+          socket.to(roomId).emit("user:left", {
+            userId,
+            socketId: socket.id,
+          });
+        });
+      }
+
       this.connectedUsers.delete(userId);
       this.userRooms.delete(userId);
     }
@@ -195,5 +222,28 @@ export class SocketService {
 
   broadcastToAll(socket: Socket, event: string, data: any) {
     socket.broadcast.emit(event, data);
+  }
+
+  private async getRoomMessages(roomId: string) {
+    try {
+      return await MessageModel.find({ roomId })
+        .sort({ createdAt: 1 })
+        .populate("sender", "name email")
+        .lean();
+    } catch (error) {
+      console.error("Error fetching room messages:", error);
+      return [];
+    }
+  }
+
+  private async getConnectedUsersInRoom(roomId: string) {
+    const users = [];
+    for (const [userId, socketId] of this.connectedUsers.entries()) {
+      const userRooms = this.userRooms.get(userId);
+      if (userRooms?.has(roomId)) {
+        users.push({ userId, socketId });
+      }
+    }
+    return users;
   }
 }

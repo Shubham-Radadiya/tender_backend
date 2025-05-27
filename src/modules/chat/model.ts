@@ -1,50 +1,47 @@
 import mongoose, { Document } from "mongoose";
-import { chatSchema } from "./schema";
+import { messageSchema } from "./schema";
 
-export interface IMessage {
+export interface IMessage extends Document {
   sender: mongoose.Types.ObjectId;
   content: string;
+  roomId: mongoose.Types.ObjectId;
+  readBy: mongoose.Types.ObjectId[];
   timestamp: Date;
 }
 
-export interface IChat extends Document {
-  participants: mongoose.Types.ObjectId[];
-  messages: IMessage[];
-  createdAt: Date;
-  updatedAt: Date;
+let MessageModel: mongoose.Model<IMessage>;
+
+try {
+  MessageModel = mongoose.model<IMessage>("Message");
+} catch (error) {
+  MessageModel = mongoose.model<IMessage>("Message", messageSchema);
 }
 
-export const ChatModel = mongoose.model<IChat>("Chat", chatSchema);
+export { MessageModel };
 
-export const createChat = async (
-  participants: mongoose.Types.ObjectId[]
-): Promise<IChat> => {
-  return await ChatModel.create({ participants, messages: [] });
+export const createMessage = async (
+  sender: mongoose.Types.ObjectId,
+  content: string,
+  roomId: mongoose.Types.ObjectId
+): Promise<IMessage> => {
+  return await MessageModel.create({
+    sender,
+    content,
+    roomId,
+    timestamp: new Date(),
+  });
 };
 
-export const getChatById = async (chatId: string): Promise<IChat | null> => {
-  return await ChatModel.findById(chatId)
-    .populate("participants", "name email")
-    .populate("messages.sender", "name email");
+export const getMessagesBySender = async (
+  senderId: string
+): Promise<IMessage[]> => {
+  return await MessageModel.find({ sender: senderId })
+    .populate("sender", "name email")
+    .sort({ timestamp: -1 });
 };
 
-export const getUserChats = async (userId: string): Promise<IChat[]> => {
-  return await ChatModel.find({ participants: userId })
-    .populate("participants", "name email")
-    .populate("messages.sender", "name email")
-    .sort({ updatedAt: -1 });
-};
-
-export const addMessageToChat = async (
-  chatId: string,
-  message: IMessage
-): Promise<IChat | null> => {
-  return await ChatModel.findByIdAndUpdate(
-    chatId,
-    {
-      $push: { messages: message },
-      $set: { updatedAt: new Date() },
-    },
-    { new: true }
-  ).populate("messages.sender", "name email");
+export const getAllMessages = async (): Promise<IMessage[]> => {
+  return await MessageModel.find()
+    .populate("sender", "name email")
+    .sort({ timestamp: -1 });
 };

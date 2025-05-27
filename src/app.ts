@@ -13,6 +13,8 @@ import Bill from "./controllers/bill";
 import path from "path";
 import jwt from "jsonwebtoken";
 import { configDotenv } from "dotenv";
+import { MessageModel, createMessage } from "./modules/chat/model";
+import mongoose, { Types } from "mongoose";
 
 configDotenv();
 
@@ -41,12 +43,15 @@ export default class App {
     App.io = new Server(App.httpServer, {
       cors: {
         origin: "*",
-        methods: ["GET", "POST"],
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         credentials: true,
+        allowedHeaders: ["Content-Type", "Authorization"],
       },
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       path: "/socket.io/",
       allowEIO3: true,
+      pingTimeout: 60000,
+      pingInterval: 25000,
     });
 
     // Socket authentication middleware
@@ -69,24 +74,86 @@ export default class App {
     App.io.on("connection", (socket) => {
       console.log("Client connected:", socket.id);
 
-      socket.on("join_room", (data, callback) => {
-        const { roomId } = data;
-        if (!roomId) {
-          callback({ error: "Room ID is required" });
-          return;
+      socket.on("join_room", async (data, callback) => {
+        try {
+          const { roomId } = data;
+          console.log("roomId ==>", roomId);
+          if (!roomId) {
+            callback({ error: "Room ID is required" });
+            return;
+          }
+          socket.join(roomId);
+          console.log(`Socket ${socket.id} joined room ${roomId}`);
+
+          // Fetch and emit room messages
+          const messages = await MessageModel.find({
+            roomId: new Types.ObjectId(roomId),
+          })
+            .populate("sender", "name email")
+            .sort({ timestamp: -1 });
+          socket.emit("room_messages", messages);
+          callback({ success: true, roomId });
+        } catch (error) {
+          console.error("Error joining room:", error);
+          callback({ error: "Failed to join room" });
         }
-        socket.join(roomId);
-        callback({ success: true, roomId });
       });
 
-      socket.on("send_message", (data, callback) => {
-        const { roomId, content } = data;
-        if (!roomId || !content) {
-          callback({ error: "Room ID and content are required" });
-          return;
+      socket.on(
+        "send_message",
+        async (data: { roomId: string; content: string }) => {
+          try {
+            console.log("data ==>", data);
+            const { roomId, content } = data;
+            const sender = socket.data.user.userId; // Get sender ID from socket data
+
+            if (!roomId || !content || !sender) {
+              throw new Error(
+                "Missing required fields: roomId, content, or sender"
+              );
+            }
+
+            const message = await createMessage(
+              new mongoose.Types.ObjectId(sender),
+              content,
+              new mongoose.Types.ObjectId(roomId)
+            );
+            console.log("Message saved:", message);
+
+            App.io.to(roomId).emit("message_received", {
+              content: message.content,
+              sender: message.sender,
+              timestamp: message.timestamp,
+            });
+          } catch (error) {
+            console.error("Error sending message:", error);
+            socket.emit("error", { message: "Failed to send message" });
+          }
         }
-        socket.to(roomId).emit("message_received", { roomId, content });
-        callback({ success: true });
+      );
+
+      socket.on("mark_as_read", async (data: { messageId: string }) => {
+        try {
+          const { messageId } = data;
+          const userId = socket.data.user.userId;
+
+          const message = await MessageModel.findById(messageId);
+          if (!message) {
+            throw new Error("Message not found");
+          }
+
+          if (!message.readBy.includes(userId)) {
+            message.readBy.push(userId);
+            await message.save();
+          }
+
+          App.io
+            .to(message.roomId.toString())
+            .emit("message_read", { messageId, readBy: message.readBy });
+        } catch (error) {
+          console.error("Error marking message as read:", error);
+          socket.emit("error", { message: "Failed to mark message as read" });
+        }
       });
 
       socket.on("disconnect", () => {
@@ -103,6 +170,9 @@ export default class App {
   }
 
   public static listen(port: number): void {
+    if (!App.httpServer) {
+      throw new Error("HTTP server not initialized");
+    }
     App.httpServer.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
     });
@@ -110,15 +180,11 @@ export default class App {
 
   private static initializeControllers() {
     // Routes
-    this.instance.use("/api/auth", new Auth().router);
-    this.instance.use("/api/users", validateAuthIdToken, new User().router);
-    this.instance.use("/api/chat", validateAuthIdToken, new Chat().router);
-    this.instance.use(
-      "/api/category",
-      validateAuthIdToken,
-      new Category().router
-    );
-    this.instance.use("/api/bill", validateAuthIdToken, new Bill().router);
+    this.instance.use("/auth", new Auth().router);
+    this.instance.use("/users", validateAuthIdToken, new User().router);
+    this.instance.use("/chat", validateAuthIdToken, new Chat().router);
+    this.instance.use("/category", validateAuthIdToken, new Category().router);
+    this.instance.use("/bill", validateAuthIdToken, new Bill().router);
   }
 
   private static initializeMiddleware() {
