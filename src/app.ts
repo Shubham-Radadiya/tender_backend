@@ -79,7 +79,9 @@ export default class App {
           const { roomId } = data;
           console.log("roomId ==>", roomId);
           if (!roomId) {
-            callback({ error: "Room ID is required" });
+            if (typeof callback === "function") {
+              callback({ error: "Room ID is required" });
+            }
             return;
           }
           socket.join(roomId);
@@ -92,10 +94,15 @@ export default class App {
             .populate("sender", "name email")
             .sort({ timestamp: -1 });
           socket.emit("room_messages", messages);
-          callback({ success: true, roomId });
+
+          if (typeof callback === "function") {
+            callback({ success: true, roomId });
+          }
         } catch (error) {
           console.error("Error joining room:", error);
-          callback({ error: "Failed to join room" });
+          if (typeof callback === "function") {
+            callback({ error: "Failed to join room" });
+          }
         }
       });
 
@@ -103,9 +110,8 @@ export default class App {
         "send_message",
         async (data: { roomId: string; content: string }) => {
           try {
-            console.log("data ==>", data);
             const { roomId, content } = data;
-            const sender = socket.data.user.userId; // Get sender ID from socket data
+            const sender = socket.data.user.userId;
 
             if (!roomId || !content || !sender) {
               throw new Error(

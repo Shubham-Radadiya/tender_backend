@@ -98,7 +98,7 @@ export class ChatService {
   async getUserRooms(userId: string): Promise<IChatRoom[]> {
     try {
       const rooms = await ChatRoomModel.find({ participants: userId })
-        .populate("participants", "name email")
+        .populate("participants", "firstName lastName email")
         .populate("lastMessage")
         .sort({ updatedAt: -1 });
 
