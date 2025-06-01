@@ -12,6 +12,7 @@ import {
   PartyWork,
   updatePartyWork,
 } from "../../modules/partyWork";
+import { UserRole } from "../../modules/user/schema";
 
 export default class Controller {
   private readonly createPartyWorkSchema = Joi.object({
@@ -41,23 +42,33 @@ export default class Controller {
   protected readonly getPartyWork = async (req: Request, res: Response) => {
     try {
       const partyWorkId = req.params.id;
+      const partyId = req.query.partyId;
       if (partyWorkId) {
         const partyWork = await getPartyWorkById(partyWorkId);
-        res.status(200).json({ message: "PartyWork Listed", partyWork });
+        res.status(200).json({ message: "PartyWork Details", partyWork });
+        return;
+      }
+
+      if (!partyId) {
+        res.status(422).json({ message: "Party-Id is needed." });
         return;
       }
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 10;
-      const { partyWorkList, totalCount } = await getPartyWork(page, limit);
+      const { partyWorkList, totalCount } = await getPartyWork(
+        partyId,
+        page,
+        limit
+      );
       res.status(200).json({
         message: "PartyWork Listed",
-        partyWorkList,
-        pagination: {
+        meta: {
           totalCount,
           totalPages: Math.ceil(totalCount / limit),
           currentPage: page,
           pageSize: limit,
         },
+        partyWorkList,
       });
       return;
     } catch (error) {
@@ -72,6 +83,7 @@ export default class Controller {
   protected readonly createPartyWork = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      const user = req.authUser;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -91,6 +103,14 @@ export default class Controller {
           }
         });
       if (!payloadValue) {
+        return;
+      }
+
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.COMPANY_MANAGER
+      ) {
+        res.status(422).json({ message: "Unauthorize Request." });
         return;
       }
 

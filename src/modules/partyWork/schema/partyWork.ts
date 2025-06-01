@@ -3,17 +3,16 @@ import { IPartyWork } from "../types";
 
 const PartyWorkSchema: Schema = new Schema(
   {
-    partyId: { type: Schema.Types.ObjectId, ref: "Party", required: true },
-    tenderId: { type: Schema.Types.ObjectId, ref: "Tender", required: true },
-    workTitle: { type: String, required: true },
+    partyId: { type: Schema.Types.ObjectId, ref: "party" },
+    tenderId: { type: Schema.Types.ObjectId, ref: "tender" },
+    workTitle: { type: String },
     workDescription: { type: String },
-    dueDate: { type: Date, required: true },
-    totalAmount: { type: Number, required: true },
+    dueDate: { type: Date },
+    totalAmount: { type: Number },
     status: {
       type: String,
       enum: ["progress", "completed", "terminated"],
       default: "progress",
-      required: true,
     },
   },
   {
