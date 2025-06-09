@@ -219,7 +219,7 @@ export default class Controller {
           status: TenderStatus.GM_PENDING,
           history: [
             {
-              action: "Tender created and assigned to Group Manager",
+              action: `Tender manager created tender '${payloadValue.name}' and assigned it to the Group Manager`,
               by: user._id,
               date: new Date(),
             },
@@ -278,8 +278,7 @@ export default class Controller {
 
       const updated = await updateTender(new Tender(mergedTender));
 
-      // Send notification to TM based on status
-      const tmId = existingTender.createdBy as string;
+      // Send notification to TM based on status      
       let notificationType: NotificationType;
       let message: string;
 
@@ -359,7 +358,7 @@ export default class Controller {
         history: [
           ...(existingTender.history || []),
           {
-            action: `Winning company ${companyDetails.firstName} ${companyDetails.lastName} assigned by Group Manager`,
+            action: `Tender '${existingTender.name}' assigned to winning company '${companyDetails.firstName} ${companyDetails.lastName}' by Group Manager`,
             by: req.authUser._id,
             date: new Date(),
           },
@@ -412,8 +411,8 @@ export default class Controller {
 
       const action =
         payloadValue?.status === "GM_ACCEPTED"
-          ? "Tender accepted by Group Manager"
-          : `Tender declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
+          ? `Tender '${existingTender.name}' accepted by Group Manager`
+          : `Tender '${existingTender.name}' declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
 
       const mergedTender = {
         ...existingTender,
@@ -521,9 +520,9 @@ export default class Controller {
         res.status(404).json({ message: "Invalid Company Id" });
         return;
       }
-      const companyDetails = await getUserById(
-        existingTender?.companyAssigned.toString()
-      );
+      // const companyDetails = await getUserById(
+      //   existingTender?.companyAssigned.toString()
+      // );
 
       // Update tender status to GM_APPROVED
       const updatedTender = await updateTender(
@@ -533,7 +532,7 @@ export default class Controller {
           history: [
             ...(existingTender.history || []),
             {
-              action: `Tender approved By GM and assigned to TM`,
+              action: `Tender '${existingTender.name}' approved by Group Manager and assigned to Tender Manager`,
               by: req.authUser._id,
               date: new Date(),
             },
@@ -635,8 +634,8 @@ export default class Controller {
 
       const action =
         payloadValue?.status === "CM_ACCEPTED"
-          ? "Tender accepted by Company Manager"
-          : `Tender declined by Company Manager. Reason: ${payloadValue?.declineReason}`;
+          ? `Tender '${existingTender.name}' accepted by Company Manager`
+          : `Tender '${existingTender.name}' declined by Company Manager. Reason: ${payloadValue?.declineReason}`;
 
       const mergedTender = {
         ...existingTender,
