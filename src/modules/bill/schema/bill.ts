@@ -14,6 +14,10 @@ const bill = new Schema<IBill>(
     taxPercent: { type: Number },
     additionalCharges: { type: Number },
     total: { type: Number },
+    invoiceNumber: { type: String },
+    address: { type: String },
+    subject: { type: String },
+    from: { type: String },
     status: {
       type: String,
       enum: Object.values(BillStatus),

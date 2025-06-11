@@ -17,6 +17,7 @@ import { getTenderQuotationByTenderId } from "../../modules/tenderQuotation";
 import { BillStatus } from "../../modules/bill/schema";
 import { UserRole } from "../../modules/user/schema";
 import { getTenderById } from "../../modules/tender";
+import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
 
 export default class Controller {
   private readonly createBillSchema = Joi.object({
@@ -26,6 +27,10 @@ export default class Controller {
     taxPercent: Joi.number().required(),
     additionalCharges: Joi.number().required(),
     total: Joi.number().required(),
+    // invoiceNumber: Joi.string().optional(),
+    address: Joi.string().optional(),
+    subject: Joi.string().optional(),
+    from: Joi.string().optional(),
     status: Joi.string().optional(),
   });
 
@@ -36,6 +41,10 @@ export default class Controller {
     taxPercent: Joi.number().optional(),
     additionalCharges: Joi.number().optional(),
     total: Joi.number().optional(),
+    // invoiceNumber: Joi.string().optional(),
+    address: Joi.string().optional(),
+    subject: Joi.string().optional(),
+    from: Joi.string().optional(),
     status: Joi.string().optional(),
   });
 
@@ -99,6 +108,7 @@ export default class Controller {
   protected readonly createBill = async (req: Request, res: Response) => {
     try {
       const authUser = req.authUser;
+
       const payload = { ...req.body, companyId: req.authUser._id };
 
       if (!payload) {
@@ -152,14 +162,15 @@ export default class Controller {
 
       if (totalBillAmount + payloadValue.amount > totalAmount) {
         res.status(422).json({
-          message: `The amount is too large you can not add more then ${
-            totalAmount - totalBillAmount
-          }.`,
+          message: `The amount is too large you can not add more then ${totalAmount - totalBillAmount
+            }.`,
         });
         return;
       }
+      const invoiceNumber = await generateInvoiceNumber(authUser, payloadValue?.tenderId.toString());
+
       const newBill = await createBill(
-        new Bill({ ...payloadValue, status: BillStatus.SAVED })
+        new Bill({ ...payloadValue, status: BillStatus.SAVED, invoiceNumber, })
       );
       res.status(201).json(newBill);
       return;
