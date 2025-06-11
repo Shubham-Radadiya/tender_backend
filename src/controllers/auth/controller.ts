@@ -100,6 +100,7 @@ export default class Controller {
   protected readonly login = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -118,6 +119,7 @@ export default class Controller {
             return;
           }
         });
+
       if (!payloadValue) {
         return;
       }
@@ -127,7 +129,6 @@ export default class Controller {
         res.status(422).json({ message: "User Not Found!" });
         return;
       }
-
       const decryptedPassword = decodePassword(user.password);
       if (payloadValue.password !== decryptedPassword) {
         res.status(401).json({ message: "Invalid password" });

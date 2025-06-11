@@ -46,7 +46,7 @@ const user = new Schema<IUser>(
     },
     companyDetails: {
       type: CompanyDetailsSchema,
-      default: undefined, // So it stays empty unless filled
+      default: undefined,
     },
     managedCompanyManagers: [
       {
