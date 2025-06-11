@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { ChatRoomModel, IChatRoom, MessageModel, IMessage } from "../models";
-import { SocketService } from "../../socket/socket.service";
+import { SocketService } from "../../../service/socket.service";
 
 export class ChatService {
   private static instance: ChatService;

@@ -75,21 +75,9 @@ export default class Controller {
     address: Joi.string().optional(),
     city: Joi.string().optional(),
     state: Joi.string().optional(),
-    // email: Joi.string()
-    //   .email({ tlds: { allow: false } })
-    //   .optional(),
     password: Joi.string().min(6).optional(),
     phoneNumber: Joi.string().optional(),
     profile: Joi.string().optional(),
-    // role: Joi.string()
-    //   .valid(
-    //     "ADMIN",
-    //     "TENDER_MANAGER",
-    //     "GROUP_MANAGER",
-    //     "COMPANY_MANAGER",
-    //     "BANK_MANAGER"
-    //   )
-    //   .optional(),
     companyDetails: Joi.object({
       companyName: Joi.string().optional(),
       businessEmail: Joi.string().email().optional(),
@@ -135,9 +123,31 @@ export default class Controller {
     }
   };
 
+  protected readonly searchUser = async (req: Request, res: Response) => {
+    try {
+      const { name } = req.query;
+      const currentUserId = req.authUser._id;
+      const userList = await searchUser(name as string);
+
+      const enrichedList = await Promise.all(
+        userList
+          .filter((user) => user._id.toString() !== currentUserId.toString())
+          .map(async (user) => ({
+            ...user,
+            isProfileComplete: await isUserProfileComplete(user),
+          }))
+      );
+      res.status(200).json({ message: "User Listed", users: enrichedList });
+      return;
+    } catch (error) {
+      console.log("Error in searchUser::", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
   protected readonly createUser = async (req: Request, res: Response) => {
     try {
-      // Admin only
       const authUser = req.authUser;
       if (authUser.role !== UserRole.ADMIN) {
         res.status(403).json({ message: "Only admin can create users" });

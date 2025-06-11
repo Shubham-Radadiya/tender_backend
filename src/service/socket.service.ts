@@ -1,14 +1,18 @@
 import { Server, Socket } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
-import { ChatRoomModel, MessageModel } from "../chat/models";
-
+import { ChatRoomModel, MessageModel } from "../modules/chat/models";
+import { Types } from "mongoose";
+import { createMessage } from "../modules/chat/model";
+import { Server as HttpServer } from "http";
+import jwt from "jsonwebtoken";
 export class SocketService {
   private static instance: SocketService;
   private io: Server<DefaultEventsMap>;
+  private httpServer: HttpServer;
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
   private userRooms: Map<string, Set<string>> = new Map(); // userId -> Set of roomIds
 
-  private constructor() { }
+  private constructor() {}
 
   static getInstance(): SocketService {
     if (!SocketService.instance) {
@@ -17,50 +21,156 @@ export class SocketService {
     return SocketService.instance;
   }
 
-  initialize(io: Server) {
-    this.io = io;
+  initialize(httpServer: HttpServer) {
+    this.httpServer = httpServer;
+    this.io = new Server(this.httpServer, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        credentials: true,
+        allowedHeaders: ["Content-Type", "Authorization"],
+      },
+      transports: ["polling", "websocket"],
+      path: "/socket.io/",
+      allowEIO3: true,
+      pingTimeout: 60000,
+      pingInterval: 25000,
+    });
+
+    // Socket authentication middleware
+    this.io.use((socket, next) => {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        return next(new Error("Authentication required"));
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+        socket.data.user = decoded;
+        next();
+      } catch (err) {
+        next(new Error("Invalid token"));
+      }
+    });
+
     this.setupSocketHandlers();
     return this;
   }
 
+  public getIO(): Server {
+    return this.io;
+  }
+
   private setupSocketHandlers() {
     this.io.on("connection", (socket: Socket) => {
-      console.log("New client connected:", socket.id);
+      console.log("Client connected:", socket.id);
 
-      // Handle user connection
-      socket.on("user:connect", (userId: string) => {
-        this.handleUserConnection(socket, userId);
+      socket.on("join_room", async (data, callback) => {
+        try {
+          const { roomId } = data;
+          console.log("roomId ==>", roomId);
+          if (!roomId) {
+            if (typeof callback === "function") {
+              callback({ error: "Room ID is required" });
+            }
+            return;
+          }
+          socket.join(roomId);
+          console.log(`Socket ${socket.id} joined room ${roomId}`);
+
+          // Fetch and emit room messages
+          const messages = await MessageModel.find({
+            roomId: new Types.ObjectId(roomId),
+          })
+            .populate("sender", "name email")
+            .populate("replyTo", "roomId content")
+            .sort({ timestamp: -1 });
+          socket.emit("room_messages", messages);
+
+          if (typeof callback === "function") {
+            callback({ success: true, roomId });
+          }
+        } catch (error) {
+          console.error("Error joining room:", error);
+          if (typeof callback === "function") {
+            callback({ error: "Failed to join room" });
+          }
+        }
       });
 
-      // Handle joining chat rooms
-      socket.on("room:join", (roomId: string) => {
-        this.handleJoinRoom(socket, roomId);
-      });
-
-      // Handle leaving chat rooms
-      socket.on("room:leave", (roomId: string) => {
-        this.handleLeaveRoom(socket, roomId);
-      });
-
-      // Handle new messages
       socket.on(
-        "message:send",
-        async (data: { roomId: string; content: string; type: string }) => {
-          await this.handleNewMessage(socket, data);
+        "send_message",
+        async (data: { roomId: string; content: string; replyTo: any }) => {
+          try {
+            console.log("send_message::data ==>", data);
+            const { roomId, content, replyTo } = data;
+            console.log("replyTo ==>", replyTo);
+            const sender = socket.data.user.userId;
+
+            if (!roomId || !content || !sender) {
+              throw new Error(
+                "Missing required fields: roomId, content, or sender"
+              );
+            }
+
+            const message = await createMessage(
+              new Types.ObjectId(sender),
+              content,
+              new Types.ObjectId(roomId),
+              replyTo ? new Types.ObjectId(replyTo._id) : undefined
+            );
+            console.log("Message saved:", message);
+
+            this.io.to(roomId).emit("message_received", {
+              content: message.content,
+              sender: message.sender,
+              timestamp: message.timestamp,
+            });
+            // Fetch and emit room messages
+            const messages = await MessageModel.find({
+              roomId: new Types.ObjectId(roomId),
+            })
+              .populate("sender", "name email")
+              .populate("replyTo")
+              .sort({ timestamp: -1 });
+            socket.emit("room_messages", messages);
+          } catch (error) {
+            console.error("Error sending message:", error);
+            socket.emit("error", { message: "Failed to send message" });
+          }
         }
       );
 
-      // Handle message read status
-      socket.on(
-        "message:read",
-        async (data: { roomId: string; messageId: string }) => {
-          await this.handleMessageRead(socket, data);
-        }
-      );
+      socket.on("mark_as_read", async (data: { messageId: string }) => {
+        try {
+          const { messageId } = data;
+          const userId = socket.data.user.userId;
 
-      // Handle disconnection
+          const message = await MessageModel.findById(messageId);
+          if (!message) {
+            throw new Error("Message not found");
+          }
+
+          if (!message.readBy.includes(userId)) {
+            message.readBy.push(userId);
+            await message.save();
+          }
+
+          this.io
+            .to(message.roomId.toString())
+            .emit("message_read", { messageId, readBy: message.readBy });
+        } catch (error) {
+          console.error("Error marking message as read:", error);
+          socket.emit("error", { message: "Failed to mark message as read" });
+        }
+      });
+
       socket.on("disconnect", () => {
-        this.handleDisconnection(socket);
+        console.log("Client disconnected:", socket.id);
+      });
+
+      socket.on("error", (error) => {
+        console.error("Socket error:", error);
       });
     });
   }
@@ -205,10 +315,6 @@ export class SocketService {
   }
 
   // Public methods for external use
-  getIO(): Server {
-    return this.io;
-  }
-
   emitToUser(userId: string, event: string, data: any) {
     const socketId = this.connectedUsers.get(userId);
     if (socketId) {

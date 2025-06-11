@@ -1,5 +1,4 @@
 import { Chat } from "../models/chat.model";
-import { Socket } from "socket.io";
 
 export class SocketService {
   private static instance: SocketService;
