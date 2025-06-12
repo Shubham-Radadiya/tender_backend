@@ -12,95 +12,64 @@ import {
   PartyWork,
   updatePartyWork,
 } from "../../modules/partyWork";
+import { UserRole } from "../../modules/user/schema";
 
 export default class Controller {
   private readonly createPartyWorkSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    dob: Joi.date().required(),
-    address: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .required(),
-    password: Joi.string()
-      .min(6)
-      .custom((v) => {
-        return SHA256(v).toString();
-      })
-      .required(),
-    phoneNumber: Joi.string().required(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .required(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
+    partyId: Joi.string().required(),
+    tenderId: Joi.string().required(),
+    workTitle: Joi.string().required(),
+    workDescription: Joi.string().optional(),
+    dueDate: Joi.date().required(),
+    totalAmount: Joi.number().required(),
+    status: Joi.string()
+      .valid("progress", "completed", "terminated")
+      .default("progress"),
   });
 
   private readonly updatePartyWorkSchema = Joi.object({
-    firstName: Joi.string().optional(),
-    lastName: Joi.string().optional(),
-    dob: Joi.date().optional(),
-    address: Joi.string().optional(),
-    city: Joi.string().optional(),
-    state: Joi.string().optional(),
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
+    partyId: Joi.string().optional(),
+    tenderId: Joi.string().optional(),
+    workTitle: Joi.string().optional(),
+    workDescription: Joi.string().optional(),
+    dueDate: Joi.date().optional(),
+    totalAmount: Joi.number().optional(),
+    status: Joi.string()
+      .valid("progress", "completed", "terminated")
       .optional(),
-    password: Joi.string().min(6).optional(),
-    phoneNumber: Joi.string().optional(),
-    profile: Joi.string().optional(),
-    role: Joi.string()
-      .valid(
-        "ADMIN",
-        "TENDER_MANAGER",
-        "GROUP_MANAGER",
-        "COMPANY_MANAGER",
-        "BANK_MANAGER"
-      )
-      .optional(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-    }).optional(),
   });
 
   protected readonly getPartyWork = async (req: Request, res: Response) => {
     try {
       const partyWorkId = req.params.id;
+      const partyId = req.query.partyId;
       if (partyWorkId) {
         const partyWork = await getPartyWorkById(partyWorkId);
-        res.status(200).json({ message: "PartyWork Listed", partyWork });
+        res.status(200).json({ message: "PartyWork Details", partyWork });
         return;
       }
-      const partyWorkList = await getPartyWork();
-      res.status(200).json({ message: "PartyWork Listed", partyWorkList });
+
+      if (!partyId) {
+        res.status(422).json({ message: "Party-Id is needed." });
+        return;
+      }
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      const { partyWorkList, totalCount } = await getPartyWork(
+        partyId,
+        page,
+        limit
+      );
+      res.status(200).json({
+        message: "PartyWork Listed",
+        meta: {
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          currentPage: page,
+          pageSize: limit,
+        },
+        partyWorkList,
+      });
       return;
     } catch (error) {
       console.log("Error in getPartyWork", error);
@@ -114,6 +83,7 @@ export default class Controller {
   protected readonly createPartyWork = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
+      const user = req.authUser;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -133,6 +103,14 @@ export default class Controller {
           }
         });
       if (!payloadValue) {
+        return;
+      }
+
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.COMPANY_MANAGER
+      ) {
+        res.status(422).json({ message: "Unauthorize Request." });
         return;
       }
 

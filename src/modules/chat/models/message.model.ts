@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IMessage extends Document {
   roomId: mongoose.Types.ObjectId;
   sender: mongoose.Types.ObjectId;
+  replayTo: mongoose.Types.ObjectId;
   content: string;
   type: "text" | "image" | "file";
   readBy: mongoose.Types.ObjectId[];
@@ -30,6 +31,10 @@ const messageSchema = new Schema(
       type: String,
       enum: ["text", "image", "file"],
       default: "text",
+    },
+    replyTo: {
+      type: Schema.Types.ObjectId,
+      ref: "Message",
     },
     readBy: [
       {

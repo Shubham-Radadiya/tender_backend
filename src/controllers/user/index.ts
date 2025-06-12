@@ -11,6 +11,7 @@ export default class User extends Controller {
 
   private initializeRoutes() {
     this.router.get("/", this.get);
+    this.router.get("/search", this.searchUser);
     this.router.get("/:id", this.get);
     this.router.post("/", validateIsAdmin, this.createUser);
     this.router.put("/:id", this.updateUser);

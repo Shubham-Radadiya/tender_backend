@@ -22,12 +22,14 @@ export { MessageModel };
 export const createMessage = async (
   sender: mongoose.Types.ObjectId,
   content: string,
-  roomId: mongoose.Types.ObjectId
+  roomId: mongoose.Types.ObjectId,
+  replayTo?: mongoose.Types.ObjectId
 ): Promise<IMessage> => {
   return await MessageModel.create({
     sender,
     content,
     roomId,
+    replayTo,
     timestamp: new Date(),
   });
 };

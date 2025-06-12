@@ -17,6 +17,7 @@ import { getTenderQuotationByTenderId } from "../../modules/tenderQuotation";
 import { BillStatus } from "../../modules/bill/schema";
 import { UserRole } from "../../modules/user/schema";
 import { getTenderById } from "../../modules/tender";
+import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
 
 export default class Controller {
   private readonly createBillSchema = Joi.object({
@@ -26,6 +27,10 @@ export default class Controller {
     taxPercent: Joi.number().required(),
     additionalCharges: Joi.number().required(),
     total: Joi.number().required(),
+    // invoiceNumber: Joi.string().optional(),
+    address: Joi.string().optional(),
+    subject: Joi.string().optional(),
+    from: Joi.string().optional(),
     status: Joi.string().optional(),
   });
 
@@ -36,11 +41,15 @@ export default class Controller {
     taxPercent: Joi.number().optional(),
     additionalCharges: Joi.number().optional(),
     total: Joi.number().optional(),
+    // invoiceNumber: Joi.string().optional(),
+    address: Joi.string().optional(),
+    subject: Joi.string().optional(),
+    from: Joi.string().optional(),
     status: Joi.string().optional(),
   });
 
   private readonly updateBillStatusSchema = Joi.object({
-    status: Joi.string().required(),
+    status: Joi.string().valid("SAVED", "PAID").required(),
   });
 
   protected readonly getBill = async (req: Request, res: Response) => {
@@ -63,22 +72,28 @@ export default class Controller {
     }
   };
 
-  protected readonly getBillByTenderId = async (req: Request, res: Response) => {
+  protected readonly getBillByTenderId = async (
+    req: Request,
+    res: Response
+  ) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.tenderId;
 
       if (!tenderId) {
         res.status(422).json({ message: "TenderId not found." });
         return;
       }
-      const existingTender = await getTenderById(tenderId)
+      const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
         res.status(422).json({ message: "Invalid TenderId" });
         return;
       }
 
-      const billList = await getBillsByCompanyAndTenderId(authUser._id, tenderId);
+      const billList = await getBillsByCompanyAndTenderId(
+        authUser._id,
+        tenderId
+      );
       res.status(200).json({ message: "Bill Listed", billList });
       return;
     } catch (error) {
@@ -90,10 +105,10 @@ export default class Controller {
     }
   };
 
-
   protected readonly createBill = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
+
       const payload = { ...req.body, companyId: req.authUser._id };
 
       if (!payload) {
@@ -119,17 +134,19 @@ export default class Controller {
       }
       if (authUser.role !== UserRole.COMPANY_MANAGER) {
         res.status(422).json({ message: "Not have permission to generate." });
-        return
+        return;
       }
 
-      const existingTender = await getTenderById(payload.tenderId)
+      const existingTender = await getTenderById(payload.tenderId);
       if (!existingTender) {
         res.status(422).json({ message: "Invalid Tender." });
-        return
+        return;
       }
-      if (existingTender.companyAssigned.toString() !== authUser._id.toString()) {
+      if (
+        existingTender.companyAssigned.toString() !== authUser._id.toString()
+      ) {
         res.status(422).json({ message: "Not have permission to generate." });
-        return
+        return;
       }
       const tenderAmount = await getTenderQuotationByTenderId(payload.tenderId);
       const totalAmount = tenderAmount?.itemRates?.reduce((sum, item) => {
@@ -150,7 +167,11 @@ export default class Controller {
         });
         return;
       }
-      const newBill = await createBill(new Bill({ ...payloadValue, status: BillStatus.SAVED }));
+      const invoiceNumber = await generateInvoiceNumber(authUser, payloadValue?.tenderId.toString());
+
+      const newBill = await createBill(
+        new Bill({ ...payloadValue, status: BillStatus.SAVED, invoiceNumber, })
+      );
       res.status(201).json(newBill);
       return;
     } catch (error) {
@@ -207,7 +228,7 @@ export default class Controller {
 
   protected readonly updateBillStatus = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const billId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -240,9 +261,8 @@ export default class Controller {
 
       if (existingBill.companyId.toString() !== authUser._id.toString()) {
         res.status(422).json({ message: "Not have permission to update." });
-        return
+        return;
       }
-
 
       const updated = await updateBill(
         new Bill({ ...existingBill, ...payloadValue })

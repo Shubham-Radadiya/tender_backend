@@ -6,6 +6,8 @@ import {
   getTenderById,
   // getTenderForGM,
   ITender,
+  Tender,
+  updateTender,
 } from "../../modules/tender";
 import { TenderStatus } from "../../modules/tender/schema";
 import {
@@ -39,18 +41,18 @@ export default class Controller {
   });
 
   private readonly updateTenderQuotationSchema = Joi.object({
-    tenderId: Joi.string(),
-    companyId: Joi.string(),
-    quotationNumber: Joi.number(),
-    tenderFee: Joi.number(),
-    emd: Joi.number(),
-    receipts: Joi.array().items(Joi.string()),
+    tenderId: Joi.string().optional(),
+    companyId: Joi.string().optional(),
+    quotationNumber: Joi.number().optional(),
+    tenderFee: Joi.number().optional(),
+    emd: Joi.number().optional(),
+    receipts: Joi.array().items(Joi.string()).optional(),
     itemRates: Joi.array().items(
       Joi.object({
-        itemId: Joi.string().required(),
-        rate: Joi.number().required(),
-        amount: Joi.number(),
-      })
+        itemId: Joi.string().optional(),
+        rate: Joi.number().optional(),
+        amount: Joi.number().optional(),
+      }).optional()
     ),
   });
 
@@ -169,7 +171,9 @@ export default class Controller {
         new TenderQuotation({ ...payloadValue })
       );
 
-      const populatedTQ = await getPopulatedTenderQuotationById(newQuotation._id)
+      const populatedTQ = await getPopulatedTenderQuotationById(
+        newQuotation._id
+      );
       res.status(201).json({
         message: "Quotation created successfully",
         quotation: populatedTQ,
@@ -224,39 +228,52 @@ export default class Controller {
         return;
       }
 
-      if (payloadValue?.companyId.toString()) {
-        if (
-          existingTenderQuotation?.companyId.toString() !==
-          payloadValue?.companyId.toString()
-        ) {
-          res.status(404).json({ message: "Mis-Match Company Id." });
-          return;
-        }
-      }
+      // if (payloadValue?.companyId.toString()) {
+      //   if (
+      //     existingTenderQuotation?.companyId.toString() !==
+      //     payloadValue?.companyId.toString()
+      //   ) {
+      //     res.status(404).json({ message: "Mis-Match Company Id." });
+      //     return;
+      //   }
+      // }
       const mergedTenderQuotation = {
         ...existingTenderQuotation,
         ...payloadValue,
       };
 
+      if (payloadValue.itemRates) {
+        const companyData = await getUserById(mergedTenderQuotation.companyId);
+        let totalQuotationAmount = 0;
+        payloadValue.itemRates.forEach((item) => {
+          totalQuotationAmount += item.amount || 0;
+        });
+
+        if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
+          res.status(422).json({
+            message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
+          });
+          return;
+        }
+      }
+
+      let tenderDetails;
+      if (payloadValue?.tenderFee || payloadValue?.receipts) {
+        tenderDetails = await getTenderById(existingTenderQuotation.tenderId);
+        if (tenderDetails.status !== TenderStatus.TM_PENDING) {
+          res.status(404).json({
+            message: "Tender Fee Or Receipt can't be added before GM Approval",
+          });
+          return;
+        }
+      }
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );
-      if (
-        authUser.role !== UserRole.TENDER_MANAGER &&
-        payloadValue?.tenderFee &&
-        payloadValue?.receipts
-      ) {
-        const tenderDetails = await getTenderById(
-          existingTenderQuotation.tenderId
-        );
-        await sendNotification(
-          tenderDetails.companyAssigned,
-          tenderDetails._id,
-          NotificationType.TENDER_APPROVED_BY_TM,
-          `New Tender ${tenderDetails.name} has been created and assigned to you`
-        );
-      }
-      const populatedTQ = await getPopulatedTenderQuotationById(updatedTenderQuotation._id)
+
+      const populatedTQ = await getPopulatedTenderQuotationById(
+        updatedTenderQuotation._id
+      );
       res.status(200).json({ updatedTenderQuotation: populatedTQ });
       return;
     } catch (error) {

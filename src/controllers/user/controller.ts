@@ -11,6 +11,7 @@ import {
   updateUser,
   deleteUserById,
   getUser,
+  updateManyUser,
   searchUser,
 } from "../../modules/user";
 import { UserRole } from "../../modules/user/schema";
@@ -74,33 +75,22 @@ export default class Controller {
     address: Joi.string().optional(),
     city: Joi.string().optional(),
     state: Joi.string().optional(),
-    // email: Joi.string()
-    //   .email({ tlds: { allow: false } })
-    //   .optional(),
     password: Joi.string().min(6).optional(),
     phoneNumber: Joi.string().optional(),
     profile: Joi.string().optional(),
-    // role: Joi.string()
-    //   .valid(
-    //     "ADMIN",
-    //     "TENDER_MANAGER",
-    //     "GROUP_MANAGER",
-    //     "COMPANY_MANAGER",
-    //     "BANK_MANAGER"
-    //   )
-    //   .optional(),
     companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-      annualTenderCap: Joi.number(),
+      companyName: Joi.string().optional(),
+      businessEmail: Joi.string().email().optional(),
+      aadharNumber: Joi.string().optional(),
+      panNumber: Joi.string().optional(),
+      userName: Joi.string().optional(),
+      companyPhone: Joi.string().optional(),
+      gstUsername: Joi.string().optional(),
+      gstNumber: Joi.string().optional(),
+      ifscCode: Joi.string().optional(),
+      website: Joi.string().optional(),
+      annualTenderCap: Joi.number().optional(),
+      adminApprove: Joi.boolean().optional(),
     }).optional(),
   });
 
@@ -133,9 +123,31 @@ export default class Controller {
     }
   };
 
+  protected readonly searchUser = async (req: Request, res: Response) => {
+    try {
+      const { name } = req.query;
+      const currentUserId = req.authUser._id;
+      const userList = await searchUser(name as string);
+
+      const enrichedList = await Promise.all(
+        userList
+          .filter((user) => user._id.toString() !== currentUserId.toString())
+          .map(async (user) => ({
+            ...user,
+            isProfileComplete: await isUserProfileComplete(user),
+          }))
+      );
+      res.status(200).json({ message: "User Listed", users: enrichedList });
+      return;
+    } catch (error) {
+      console.log("Error in searchUser::", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
   protected readonly createUser = async (req: Request, res: Response) => {
     try {
-      // Admin only
       const authUser = req.authUser;
       if (authUser.role !== UserRole.ADMIN) {
         res.status(403).json({ message: "Only admin can create users" });
@@ -233,10 +245,18 @@ export default class Controller {
         return;
       }
 
-      const updated = await updateUser(
-        new User({ ...existingUser, ...payloadValue })
+      await updateUser(
+        new User({
+          ...existingUser,
+          ...payloadValue,
+          companyDetails: {
+            ...existingUser.companyDetails,
+            ...payloadValue.companyDetails,
+          },
+        })
       );
-      res.status(200).json(updated);
+      const updatedUser = await getUserById(userId);
+      res.status(200).json({ updated: updatedUser });
       return;
     } catch (error) {
       console.log("Error in updateUser", error);
@@ -261,6 +281,28 @@ export default class Controller {
       console.log("Error in deleteUser", error);
       res.status(500).json({ message: error.message });
       return;
+    }
+  };
+
+  protected readonly approveUsers = async (req: Request, res: Response) => {
+    try {
+      const { userIds } = req.body;
+
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "userIds must be a non-empty array." });
+      }
+
+      const fields = { "companyDetails.adminApprove": true };
+      const result = await updateManyUser(userIds, fields);
+
+      return res.status(200).json({
+        message: `${result.modifiedCount} user(s) approved successfully.`,
+      });
+    } catch (error) {
+      console.error("Error in approveUsers:", error);
+      return res.status(500).json({ message: error.message });
     }
   };
 }

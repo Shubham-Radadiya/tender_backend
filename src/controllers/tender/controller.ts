@@ -75,6 +75,17 @@ export default class Controller {
     }),
   });
 
+  private readonly tenderAcceptedByCMSchema = Joi.object({
+    status: Joi.string().valid("CM_ACCEPTED", "CM_DECLINED").required(),
+    declineReason: Joi.when("status", {
+      is: "CM_DECLINED",
+      then: Joi.string().required().messages({
+        "any.required": "Reason is required when status is DECLINED",
+      }),
+      otherwise: Joi.optional(),
+    }),
+  });
+
   protected readonly getTender = async (req: Request, res: Response) => {
     try {
       const tenderId = req.params.id;
@@ -98,11 +109,18 @@ export default class Controller {
   protected readonly getTenderForGM = async (req: Request, res: Response) => {
     try {
       const user = req.authUser;
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.GROUP_MANAGER) {
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Unauthorize Request." });
-        return
+        return;
       }
-      const tenderList = await getTenderByStatus([TenderStatus.GM_PENDING, TenderStatus.GM_ACCEPTED]);
+      const tenderList = await getTenderByStatus([
+        TenderStatus.GM_PENDING,
+        TenderStatus.GM_ACCEPTED,
+        TenderStatus.TM_PENDING,
+      ]);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
     } catch (error) {
@@ -116,11 +134,14 @@ export default class Controller {
 
   protected readonly getTenderForCM = async (req: Request, res: Response) => {
     try {
-      const user = req.authUser
+      const user = req.authUser;
       const id = req.authUser._id;
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.COMPANY_MANAGER) {
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.COMPANY_MANAGER
+      ) {
         res.status(422).json({ message: "Unauthorize Request." });
-        return
+        return;
       }
       const tenderList = await getTenderByCompany(id);
       res.status(200).json({ message: "Tender List For CM", tenderList });
@@ -162,7 +183,7 @@ export default class Controller {
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
-        return
+        return;
       }
       const payloadValue: ITender = await this.createTenderSchema
         .validateAsync(payload)
@@ -182,9 +203,14 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.TENDER_MANAGER) {
-        res.status(422).json({ message: "Don't have access to generate the Tender." });
-        return
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER
+      ) {
+        res
+          .status(422)
+          .json({ message: "Don't have access to generate the Tender." });
+        return;
       }
       const newTender = await createTender(
         new Tender({
@@ -193,7 +219,7 @@ export default class Controller {
           status: TenderStatus.GM_PENDING,
           history: [
             {
-              action: "Tender created and assigned to Group Manager",
+              action: `Tender manager created tender '${payloadValue.name}' and assigned it to the Group Manager`,
               by: user._id,
               date: new Date(),
             },
@@ -210,7 +236,7 @@ export default class Controller {
         `New tender ${payloadValue.name} has been created and assigned to you`
       );
 
-      const populatedTender = await getTenderById(newTender._id)
+      const populatedTender = await getTenderById(newTender._id);
       res.status(201).json(populatedTender);
       return;
     } catch (error) {
@@ -252,8 +278,7 @@ export default class Controller {
 
       const updated = await updateTender(new Tender(mergedTender));
 
-      // Send notification to TM based on status
-      const tmId = existingTender.createdBy as string;
+      // Send notification to TM based on status      
       let notificationType: NotificationType;
       let message: string;
 
@@ -288,7 +313,7 @@ export default class Controller {
 
   protected readonly tenderGotTo = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.id;
       const payload = req.body;
       if (!payload) {
@@ -305,10 +330,12 @@ export default class Controller {
 
       if (!payloadValue) return;
 
-
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to assign." });
-        return
+        return;
       }
 
       const existingTender = await getTenderById(tenderId);
@@ -331,7 +358,7 @@ export default class Controller {
         history: [
           ...(existingTender.history || []),
           {
-            action: `Winning company ${companyDetails.firstName} ${companyDetails.lastName} assigned by Group Manager`,
+            action: `Tender '${existingTender.name}' assigned to winning company '${companyDetails.firstName} ${companyDetails.lastName}' by Group Manager`,
             by: req.authUser._id,
             date: new Date(),
           },
@@ -350,12 +377,12 @@ export default class Controller {
 
   protected readonly tenderAccepted = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.id;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
-        return
+        return;
       }
       const payloadValue: Partial<ITender> = await this.tenderAcceptedSchema
         .validateAsync(payload)
@@ -368,9 +395,12 @@ export default class Controller {
 
       if (!payloadValue) return;
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
         res.status(422).json({ message: "Not have permission to accept." });
-        return
+        return;
       }
 
       const existingTender = await getTenderById(tenderId);
@@ -381,8 +411,8 @@ export default class Controller {
 
       const action =
         payloadValue?.status === "GM_ACCEPTED"
-          ? "Tender accepted by Group Manager"
-          : `Tender declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
+          ? `Tender '${existingTender.name}' accepted by Group Manager`
+          : `Tender '${existingTender.name}' declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
 
       const mergedTender = {
         ...existingTender,
@@ -446,7 +476,7 @@ export default class Controller {
 
   protected readonly approveTender = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
+      const authUser = req.authUser;
       const tenderId = req.params.id;
       const existingTender = await getTenderById(tenderId);
       if (!existingTender) {
@@ -454,9 +484,14 @@ export default class Controller {
         return;
       }
 
-      if (authUser.role !== UserRole.ADMIN && authUser.role !== UserRole.GROUP_MANAGER) {
-        res.status(422).json({ message: "Not have permission to approve tender." });
-        return
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.GROUP_MANAGER
+      ) {
+        res
+          .status(422)
+          .json({ message: "Not have permission to approve tender." });
+        return;
       }
 
       if (existingTender.status !== TenderStatus.GM_ACCEPTED) {
@@ -485,41 +520,159 @@ export default class Controller {
         res.status(404).json({ message: "Invalid Company Id" });
         return;
       }
-      const companyDetails = await getUserById(
-        existingTender?.companyAssigned.toString()
-      );
+      // const companyDetails = await getUserById(
+      //   existingTender?.companyAssigned.toString()
+      // );
 
       // Update tender status to GM_APPROVED
       const updatedTender = await updateTender(
         new Tender({
           ...existingTender,
-          status: TenderStatus.GM_APPROVED,
+          status: TenderStatus.TM_PENDING,
           history: [
             ...(existingTender.history || []),
             {
-              action: `Tender approved and assigned to company ${companyDetails.firstName} ${companyDetails.lastName}`,
+              action: `Tender '${existingTender.name}' approved by Group Manager and assigned to Tender Manager`,
               by: req.authUser._id,
               date: new Date(),
             },
           ],
         })
       );
+      // company ${companyDetails.firstName} ${companyDetails.lastName}
 
       const getTMData = await getTM();
       await sendNotification(
         getTMData._id,
         existingTender._id,
         NotificationType.TENDER_APPROVED,
-        `Tender approved by the Group Manager`
+        `Tender approved by the group manager and assigned back to you.`
       );
 
       res.status(200).json({
-        message: "Tender approved successfully",
+        message: "Tender approved by GM successfully and assigned back to TM.",
         tender: updatedTender,
       });
       return;
     } catch (error) {
       console.log("Error in approveTender", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  };
+
+  protected readonly passTenderToCM = async (req: Request, res: Response) => {
+    try {
+      const authUser = req.authUser
+      const tenderId = req.params.id
+      const tenderDetails = await getTenderById(tenderId)
+      if (!tenderDetails) {
+        res.status(500).json({ message: "Invalid Tender Id." });
+        return;
+      }
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.TENDER_MANAGER
+      ) {
+        res.status(422).json({ message: "Not have permission to pass." });
+        return;
+      }
+      const mergedTender = {
+        ...tenderDetails,
+        status: TenderStatus.CM_PENDING,
+      };
+      await updateTender(new Tender(mergedTender));
+      await sendNotification(
+        tenderDetails.companyAssigned,
+        tenderDetails._id,
+        NotificationType.TENDER_APPROVED_BY_TM,
+        `New Tender ${tenderDetails.name} has been created and assigned to you`
+      );
+    } catch (error) {
+      console.log("Error in assignTenderToCM", error);
+      res.status(500).json({ message: error.message });
+      return;
+    }
+  }
+
+  protected readonly tenderAcceptedByCM = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const authUser = req.authUser;
+      const tenderId = req.params.id;
+      const payload = req.body;
+      if (!payload) {
+        res.status(422).json({ message: "Invalid request body" });
+        return;
+      }
+      const payloadValue: Partial<ITender> = await this.tenderAcceptedByCMSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          res.status(422).json(isError(e) ? e : { message: e.message });
+          return null;
+        });
+
+      if (!payloadValue) return;
+
+      if (
+        authUser.role !== UserRole.ADMIN &&
+        authUser.role !== UserRole.COMPANY_MANAGER
+      ) {
+        res.status(422).json({ message: "Not have permission to accept." });
+        return;
+      }
+
+      const existingTender = await getTenderById(tenderId);
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
+
+      const action =
+        payloadValue?.status === "CM_ACCEPTED"
+          ? `Tender '${existingTender.name}' accepted by Company Manager`
+          : `Tender '${existingTender.name}' declined by Company Manager. Reason: ${payloadValue?.declineReason}`;
+
+      const mergedTender = {
+        ...existingTender,
+        status: payloadValue?.status,
+        declineReason:
+          payloadValue?.status === "CM_DECLINED"
+            ? payloadValue?.declineReason
+            : "",
+        history: [
+          ...(existingTender.history || []),
+          {
+            action,
+            by: req.authUser._id,
+            date: new Date(),
+          },
+        ],
+      };
+
+      const updated = await updateTender(new Tender(mergedTender));
+
+      const getTMData = await getTM();
+      const notificationType =
+        payloadValue?.status === "CM_ACCEPTED"
+          ? NotificationType.TENDER_ACCEPTED
+          : NotificationType.TENDER_DECLINED;
+
+      await sendNotification(
+        getTMData._id,
+        existingTender._id,
+        notificationType,
+        action
+      );
+
+      res.status(200).json(updated);
+      return;
+    } catch (error) {
+      console.log("Error in Tender Accepted By CM", error);
       res.status(500).json({ message: error.message });
       return;
     }

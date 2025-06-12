@@ -5,7 +5,7 @@ export class SocketService {
   private static instance: SocketService;
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): SocketService {
     if (!SocketService.instance) {

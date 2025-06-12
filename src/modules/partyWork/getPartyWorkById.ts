@@ -7,6 +7,11 @@ import { PartyWorkModel } from "./schema";
  * @returns relevant partyWork record | null
  */
 export const getPartyWorkById = async (_id: string) => {
-  const partyWork = await PartyWorkModel.findById(_id);
+  const partyWork = await PartyWorkModel.findById(_id)
+    .populate({
+      path: "partyId",
+      select: "name",
+    })
+    .lean();
   return partyWork ? new PartyWork(partyWork) : null;
 };

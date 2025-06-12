@@ -12,6 +12,10 @@ export interface IBill {
   taxPercent: number;
   additionalCharges: number;
   total: number;
+  invoiceNumber: string;
+  address: string;
+  subject: string;
+  from: string;
   status: BillStatus;
   createdAt?: Date;
   updatedAt?: Date;
@@ -25,6 +29,10 @@ export class Bill implements IBill {
   taxPercent: number;
   additionalCharges: number;
   total: number;
+  invoiceNumber: string;
+  address: string;
+  subject: string;
+  from: string;
   status: BillStatus;
   createdAt?: Date;
   updatedAt?: Date;
@@ -43,6 +51,10 @@ export class Bill implements IBill {
     this.taxPercent = input.taxPercent;
     this.additionalCharges = input.additionalCharges;
     this.total = input.total;
+    this.invoiceNumber = input.invoiceNumber;
+    this.address = input.address;
+    this.subject = input.subject;
+    this.from = input.from;
     this.status = input.status;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;

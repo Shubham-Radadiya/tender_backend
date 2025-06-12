@@ -11,6 +11,7 @@ export const getTenderById = async (_id: string) => {
   const tender = await TenderModel.findById(_id)
     .populate("category")
     .populate("department")
+    .populate("history.by", "firstName lastName role")
     .lean();
   if (!tender) return null;
   const quotations = await TenderQuotationModel.find({ tenderId: _id })
@@ -43,9 +44,18 @@ export const getTenderById = async (_id: string) => {
 };
 
 export const getTenderByCompany = async (companyAssigned: string) => {
-  const tender = await TenderModel.find({ companyAssigned, status: TenderStatus.GM_APPROVED })
+  const statuses = [
+    TenderStatus.CM_ACCEPTED,
+    TenderStatus.CM_PENDING,
+    TenderStatus.CM_DECLINED,
+  ];
+  const tender = await TenderModel.find({
+    companyAssigned,
+    status: { $in: statuses },
+  })
     .populate("category")
     .populate("department")
+    .populate("history.by", "firstName lastName role")
     .lean();
   return tender ? tender.map((item) => new Tender(item)) : null;
 };
