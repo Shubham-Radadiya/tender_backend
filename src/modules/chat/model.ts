@@ -6,6 +6,7 @@ export interface IMessage extends Document {
   content: string;
   roomId: mongoose.Types.ObjectId;
   readBy: mongoose.Types.ObjectId[];
+  replyTo: mongoose.Types.ObjectId;
   timestamp: Date;
 }
 
@@ -23,13 +24,13 @@ export const createMessage = async (
   sender: mongoose.Types.ObjectId,
   content: string,
   roomId: mongoose.Types.ObjectId,
-  replayTo?: mongoose.Types.ObjectId
+  replyTo?: mongoose.Types.ObjectId
 ): Promise<IMessage> => {
   return await MessageModel.create({
     sender,
     content,
     roomId,
-    replayTo,
+    replyTo,
     timestamp: new Date(),
   });
 };

@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { ChatRoomModel, MessageModel } from "../modules/chat/models";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { createMessage } from "../modules/chat/model";
 import { Server as HttpServer } from "http";
 import jwt from "jsonwebtoken";
@@ -12,7 +12,7 @@ export class SocketService {
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
   private userRooms: Map<string, Set<string>> = new Map(); // userId -> Set of roomIds
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): SocketService {
     if (!SocketService.instance) {
@@ -80,7 +80,7 @@ export class SocketService {
 
           // Fetch and emit room messages
           const messages = await MessageModel.find({
-            roomId: new Types.ObjectId(roomId),
+            roomId: new Types.ObjectId(String(roomId)),
           })
             .populate("sender", "name email")
             .populate("replyTo", "roomId content")
@@ -113,11 +113,17 @@ export class SocketService {
               );
             }
 
+            let replyToId: mongoose.Types.ObjectId | undefined;
+
+            if (replyTo?._id && Types.ObjectId.isValid(replyTo._id)) {
+              replyToId = new Types.ObjectId(replyTo._id);
+            }
+
             const message = await createMessage(
-              new Types.ObjectId(sender),
+              new Types.ObjectId(String(sender)),
               content,
               new Types.ObjectId(roomId),
-              replyTo ? new Types.ObjectId(replyTo._id) : undefined
+              replyToId
             );
             console.log("Message saved:", message);
 
@@ -128,7 +134,7 @@ export class SocketService {
             });
             // Fetch and emit room messages
             const messages = await MessageModel.find({
-              roomId: new Types.ObjectId(roomId),
+              roomId: new Types.ObjectId((roomId)),
             })
               .populate("sender", "name email")
               .populate("replyTo")
