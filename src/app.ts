@@ -19,6 +19,7 @@ import TenderQuotation from "./controllers/tenderQuotation";
 import Company from "./controllers/company";
 import Image from "./controllers/image";
 import Notification from "./controllers/notification";
+import Department from "./controllers/department";
 import { createServer } from "http";
 
 configDotenv();
@@ -78,9 +79,14 @@ export default class App {
   private static initializeControllers() {
     // Routes
     this.instance.use("/auth", new Auth().router);
-    this.instance.use("/users", validateAuthIdToken, new User().router);
+    this.instance.use("/user", validateAuthIdToken, new User().router);
     this.instance.use("/chat", validateAuthIdToken, new Chat().router);
     this.instance.use("/category", validateAuthIdToken, new Category().router);
+    this.instance.use(
+      "/department",
+      validateAuthIdToken,
+      new Department().router
+    );
     this.instance.use("/bill", validateAuthIdToken, new Bill().router);
     this.instance.use("/tender", validateAuthIdToken, new Tender().router);
     this.instance.use(

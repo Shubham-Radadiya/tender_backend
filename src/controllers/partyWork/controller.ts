@@ -13,6 +13,8 @@ import {
   updatePartyWork,
 } from "../../modules/partyWork";
 import { UserRole } from "../../modules/user/schema";
+import { getPartyById } from "../../modules/party";
+import { getTenderById } from "../../modules/tender";
 
 export default class Controller {
   private readonly createPartyWorkSchema = Joi.object({
@@ -84,6 +86,7 @@ export default class Controller {
     try {
       const payload = req.body;
       const user = req.authUser;
+
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -114,6 +117,20 @@ export default class Controller {
         return;
       }
 
+      const tender = await getTenderById(payloadValue?.tenderId?.toString())
+      if (!tender) {
+        res.status(422).json({ message: "Invalid tender Id." });
+        return;
+      }
+      if (tender?.companyAssigned.toString() !== user._id.toString()) {
+        res.status(422).json({ message: "Tender not belongs to you." });
+        return;
+      }
+      const party = await getPartyById(payloadValue?.partyId?.toString())
+      if (!party) {
+        res.status(422).json({ message: "Invalid Party Id." });
+        return;
+      }
       const newPartyWork = await createPartyWork(
         new PartyWork({ ...payloadValue })
       );
