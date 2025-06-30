@@ -20,6 +20,22 @@ const tenderQuotation = new Schema<ITenderQuotation>(
     emd: {
       type: Number,
     },
+
+    termsAndConditions: {
+      type: String,
+    },
+    form: {
+      type: String,
+    },
+    to: {
+      type: String,
+    },
+    refOne: {
+      type: String,
+    },
+    refTwo: {
+      type: String,
+    },
     receipts: [
       {
         type: String,

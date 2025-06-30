@@ -31,6 +31,9 @@ export default class Controller {
     department: Joi.string().required(),
     nameOfWork: Joi.string().required(),
     providedBy: Joi.string().required(),
+    status: Joi.string()
+    .valid(...Object.values(TenderStatus))
+    .default(TenderStatus.GM_PENDING),
     items: Joi.array()
       .items(
         Joi.object({
@@ -216,7 +219,6 @@ export default class Controller {
         new Tender({
           ...payloadValue,
           createdBy: user._id,
-          status: TenderStatus.GM_PENDING,
           history: [
             {
               action: `Tender manager created tender '${payloadValue.name}' and assigned it to the Group Manager`,

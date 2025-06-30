@@ -38,6 +38,11 @@ export default class Controller {
         })
       )
       .required(),
+      termsAndConditions: Joi.string().optional(),
+      form: Joi.string().optional(),
+      to: Joi.string().optional(),
+      refOne: Joi.string().optional(),
+      refTwo: Joi.string().optional(),
   });
 
   private readonly updateTenderQuotationSchema = Joi.object({
@@ -59,13 +64,14 @@ export default class Controller {
   protected readonly createTenderQuotation = async (
     req: Request,
     res: Response
-  ) => {
+  ): Promise<any> => {
     try {
       const authUser = req.authUser;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
+      
       const payloadValue: ITenderQuotation =
         await this.createTenderQuotationSchema
           .validateAsync(payload)
@@ -103,11 +109,26 @@ export default class Controller {
         return;
       }
 
-      if (existingTender.status !== TenderStatus.GM_ACCEPTED) {
-        res.status(400).json({
-          message: "Tender must be ACCEPTED By GM.",
-        });
-        return;
+      if (existingTender?.tenderType === "LTD") {
+        const missingFields = [];
+      
+        if (!payloadValue.termsAndConditions) missingFields.push("termsAndConditions");
+        if (!payloadValue.form) missingFields.push("form");
+        if (!payloadValue.to) missingFields.push("to");
+        if (!payloadValue.refOne) missingFields.push("refOne");
+        if (!payloadValue.refTwo) missingFields.push("refTwo");
+      
+        if (missingFields.length > 0) {
+          return res.status(422).json({
+            message: `Missing required fields for LTD tender: ${missingFields.join(", ")}`,
+          });
+        }
+      } else {
+        delete payloadValue.termsAndConditions;
+        delete payloadValue.form;
+        delete payloadValue.to;
+        delete payloadValue.refOne;
+        delete payloadValue.refTwo;
       }
 
       // Calculate total quotation amount

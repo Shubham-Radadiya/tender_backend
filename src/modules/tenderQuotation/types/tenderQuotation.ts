@@ -20,6 +20,11 @@ export interface ITenderQuotation {
   itemRates: IItemRate[];
   createdAt?: Date;
   updatedAt?: Date;
+  termsAndConditions?: string;
+  form?: string;
+  to?: string;
+  refOne?: string;
+  refTwo?: string;
 }
 
 export class TenderQuotation implements ITenderQuotation {
@@ -33,7 +38,11 @@ export class TenderQuotation implements ITenderQuotation {
   itemRates: IItemRate[];
   createdAt?: Date;
   updatedAt?: Date;
-
+  termsAndConditions?: string;
+  form?: string;
+  to?: string;
+  refOne?: string;
+  refTwo?: string;
   constructor(input: ITenderQuotation) {
     this._id = input._id
       ? input._id.toString()
@@ -52,6 +61,11 @@ export class TenderQuotation implements ITenderQuotation {
     }));
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
+    this.termsAndConditions = input.termsAndConditions;
+    this.form = input.form;
+    this.to = input.to;
+    this.refOne = input.refOne;
+    this.refTwo = input.refTwo;
   }
 
   toJSON(): ITenderQuotation {
