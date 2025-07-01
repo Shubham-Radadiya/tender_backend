@@ -32,8 +32,8 @@ export default class Controller {
     nameOfWork: Joi.string().required(),
     providedBy: Joi.string().required(),
     status: Joi.string()
-    .valid(...Object.values(TenderStatus))
-    .default(TenderStatus.GM_PENDING),
+      .valid(...Object.values(TenderStatus))
+      .default(TenderStatus.GM_PENDING),
     items: Joi.array()
       .items(
         Joi.object({
@@ -250,7 +250,49 @@ export default class Controller {
     }
   };
 
-  protected readonly updateTender = async (req: Request, res: Response) => {
+  protected readonly updateTenderStatus = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const user = req.authUser;
+      const { id, status } = req.body;
+
+      if (!status || !Object.values(TenderStatus).includes(status)) {
+        return res.status(422).json({ message: "Invalid or missing status." });
+      }
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER
+      ) {
+        res
+          .status(422)
+          .json({ message: "Don't have access to generate the Tender." });
+        return;
+      }
+
+      const existingTender = await getTenderById(id);
+      if (!existingTender) {
+        return res.status(404).json({ message: "Tender not found." });
+      }
+      existingTender.status = status;
+
+      const updatedTender = await updateTender(new Tender(existingTender));
+      res.status(200).json({
+        message: "Tender status updated successfully.",
+        data: updatedTender,
+      });
+    } catch (error) {
+      console.error("Error in updateTenderStatus", error);
+      res.status(500).json({ error: error?.message });
+    }
+  };
+  s;
+
+  protected readonly updateTender = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
     try {
       const tenderId = req.params.id;
       const payload = req.body;
@@ -280,7 +322,7 @@ export default class Controller {
 
       const updated = await updateTender(new Tender(mergedTender));
 
-      // Send notification to TM based on status      
+      // Send notification to TM based on status
       let notificationType: NotificationType;
       let message: string;
 
@@ -565,9 +607,9 @@ export default class Controller {
 
   protected readonly passTenderToCM = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
-      const tenderId = req.params.id
-      const tenderDetails = await getTenderById(tenderId)
+      const authUser = req.authUser;
+      const tenderId = req.params.id;
+      const tenderDetails = await getTenderById(tenderId);
       if (!tenderDetails) {
         res.status(500).json({ message: "Invalid Tender Id." });
         return;
@@ -595,7 +637,7 @@ export default class Controller {
       res.status(500).json({ message: error.message });
       return;
     }
-  }
+  };
 
   protected readonly tenderAcceptedByCM = async (
     req: Request,
