@@ -7,24 +7,27 @@ const tenderNotice = new Schema<ITenderNotice>(
       type: Schema.Types.ObjectId,
       ref: "tender",
     },
+    fileName: {
+      type: String,
+    },
     days: {
-        type: Number,
-      },
+      type: Number,
+    },
     itemName: {
-        type: String,
+      type: String,
     },
     quantity: {
-        type: Number,
+      type: Number,
     },
     unit: {
-        type: String,
+      type: String,
     },
     rate: {
-        type: Number,
+      type: Number,
     },
     amount: {
-        type: Number,
-    }
+      type: Number,
+    },
   },
   { timestamps: true }
 );

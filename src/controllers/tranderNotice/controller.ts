@@ -8,13 +8,43 @@ import { createTenderNotice } from "../../modules/tenderNotice";
 
 export default class Controller {
   private readonly createTenderNoticeSchema = Joi.object({
+    type: Joi.string().valid("upload", "manual").required(),
     tenderId: Joi.string().required(),
-    itemName: Joi.string().required(),
-    quantity: Joi.number().required(),
-    unit: Joi.string().required(),
-    rate: Joi.number().required(),
-    amount: Joi.number().required(),
-    days: Joi.number().optional(),
+    fileName: Joi.when("type", {
+      is: "upload",
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    itemName: Joi.when("type", {
+      is: "manual",
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    quantity: Joi.when("type", {
+      is: "manual",
+      then: Joi.number().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    unit: Joi.when("type", {
+      is: "manual",
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    rate: Joi.when("type", {
+      is: "manual",
+      then: Joi.number().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    amount: Joi.when("type", {
+      is: "manual",
+      then: Joi.number().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    days: Joi.when("type", {
+      is: "manual",
+      then: Joi.number().optional(),
+      otherwise: Joi.forbidden(),
+    }),
   });
 
   protected readonly createTenderQuotation = async (
@@ -49,7 +79,8 @@ export default class Controller {
 
       if (
         authUser.role !== UserRole.ADMIN &&
-        authUser.role !== UserRole.GROUP_MANAGER
+        authUser.role !== UserRole.GROUP_MANAGER &&
+        authUser.role !== UserRole.TENDER_MANAGER
       ) {
         res.status(422).json({ message: "Not have permission to create." });
         return;
