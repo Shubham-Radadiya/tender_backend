@@ -29,6 +29,7 @@ export default class Controller {
     lastDate: Joi.date().required(),
     category: Joi.string().required(),
     department: Joi.string().required(),
+    tenderManagerStatus: Joi.string(),
     nameOfWork: Joi.string().required(),
     providedBy: Joi.string().required(),
     status: Joi.string()

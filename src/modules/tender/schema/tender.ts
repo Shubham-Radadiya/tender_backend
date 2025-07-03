@@ -24,6 +24,7 @@ const tender = new Schema<ITender>(
     department: { type: Schema.Types.ObjectId, ref: "department" },
     nameOfWork: { type: String },
     providedBy: { type: String },
+    tenderManagerStatus: { type: String },
     items: [
       {
         description: { type: String },

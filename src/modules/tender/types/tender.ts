@@ -11,6 +11,7 @@ export interface ITender {
   tenderType: string;
   name: string;
   createdDate: Date;
+  tenderManagerStatus: string;
   lastDate: Date;
   category: string | ICategory;
   department: string | IDepartment;
@@ -42,6 +43,7 @@ export class Tender implements ITender {
   name: string;
   createdDate: Date;
   lastDate: Date;
+  tenderManagerStatus: string;
   category: string | ICategory;
   department: string | IDepartment;
   nameOfWork: string;
@@ -71,6 +73,7 @@ export class Tender implements ITender {
     this.tenderNo = input.tenderNo;
     this.tenderType = input.tenderType;
     this.name = input.name;
+    this.tenderManagerStatus = input.tenderManagerStatus;
     this.createdDate = input.createdDate;
     this.lastDate = input.lastDate;
     this.category = input.category;
@@ -84,10 +87,10 @@ export class Tender implements ITender {
     this.companyAssigned = input.companyAssigned;
     this.history = input.history
       ? input.history.map((h) => ({
-        action: h.action,
-        by: h.by,
-        date: h.date,
-      }))
+          action: h.action,
+          by: h.by,
+          date: h.date,
+        }))
       : [];
     this.declineReason = input.declineReason;
     this.createdAt = input.createdAt;
