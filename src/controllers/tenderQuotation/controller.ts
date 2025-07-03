@@ -38,11 +38,11 @@ export default class Controller {
         })
       )
       .required(),
-      termsAndConditions: Joi.string().optional(),
-      form: Joi.string().optional(),
-      to: Joi.string().optional(),
-      refOne: Joi.string().optional(),
-      refTwo: Joi.string().optional(),
+    termsAndConditions: Joi.string().optional(),
+    form: Joi.string().optional(),
+    to: Joi.string().optional(),
+    refOne: Joi.string().optional(),
+    refTwo: Joi.string().optional(),
   });
 
   private readonly updateTenderQuotationSchema = Joi.object({
@@ -51,12 +51,14 @@ export default class Controller {
     quotationNumber: Joi.number().optional(),
     tenderFee: Joi.number().optional(),
     emd: Joi.number().optional(),
-    receipts: Joi.array().items(Joi.string()).optional(),
     itemRates: Joi.array().items(
       Joi.object({
         itemId: Joi.string().optional(),
         rate: Joi.number().optional(),
         amount: Joi.number().optional(),
+        date: Joi.date().optional(),
+        receipt: Joi.string().optional(),
+        fee: Joi.number().optional(),
       }).optional()
     ),
   });
@@ -71,7 +73,7 @@ export default class Controller {
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
-      
+
       const payloadValue: ITenderQuotation =
         await this.createTenderQuotationSchema
           .validateAsync(payload)
@@ -111,16 +113,19 @@ export default class Controller {
 
       if (existingTender?.tenderType === "LTD") {
         const missingFields = [];
-      
-        if (!payloadValue.termsAndConditions) missingFields.push("termsAndConditions");
+
+        if (!payloadValue.termsAndConditions)
+          missingFields.push("termsAndConditions");
         if (!payloadValue.form) missingFields.push("form");
         if (!payloadValue.to) missingFields.push("to");
         if (!payloadValue.refOne) missingFields.push("refOne");
         if (!payloadValue.refTwo) missingFields.push("refTwo");
-      
+
         if (missingFields.length > 0) {
           return res.status(422).json({
-            message: `Missing required fields for LTD tender: ${missingFields.join(", ")}`,
+            message: `Missing required fields for LTD tender: ${missingFields.join(
+              ", "
+            )}`,
           });
         }
       } else {
@@ -279,11 +284,11 @@ export default class Controller {
       }
 
       let tenderDetails;
-      if (payloadValue?.tenderFee || payloadValue?.receipts) {
+      if (payloadValue?.tenderFee) {
         tenderDetails = await getTenderById(existingTenderQuotation.tenderId);
         if (tenderDetails.status !== TenderStatus.TM_PENDING) {
           res.status(404).json({
-            message: "Tender Fee Or Receipt can't be added before GM Approval",
+            message: "Tender Fee can't be added before GM Approval",
           });
           return;
         }

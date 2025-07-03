@@ -7,6 +7,9 @@ export interface IItemRate {
   itemId: string;
   rate: number;
   amount?: number;
+  date?: Date;
+  receipt?: string;
+  fee?: number;
 }
 
 export interface ITenderQuotation {
@@ -16,7 +19,6 @@ export interface ITenderQuotation {
   quotationNumber: number;
   tenderFee: number;
   emd: number;
-  receipts: string[];
   itemRates: IItemRate[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -34,7 +36,6 @@ export class TenderQuotation implements ITenderQuotation {
   quotationNumber: number;
   tenderFee: number;
   emd: number;
-  receipts: string[];
   itemRates: IItemRate[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -53,11 +54,13 @@ export class TenderQuotation implements ITenderQuotation {
     this.quotationNumber = input.quotationNumber;
     this.tenderFee = input.tenderFee;
     this.emd = input.emd;
-    this.receipts = input.receipts || [];
     this.itemRates = input.itemRates.map((item) => ({
       itemId: item.itemId,
       rate: item.rate,
       amount: item.amount,
+      date: item.date ? new Date(item.date) : undefined,
+      receipt: item.receipt,
+      fee: item.fee,
     }));
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;

@@ -36,11 +36,6 @@ const tenderQuotation = new Schema<ITenderQuotation>(
     refTwo: {
       type: String,
     },
-    receipts: [
-      {
-        type: String,
-      },
-    ],
     itemRates: [
       {
         itemId: {
@@ -50,6 +45,15 @@ const tenderQuotation = new Schema<ITenderQuotation>(
           type: Number,
         },
         amount: Number,
+        date: {
+          type: Date,
+        },
+        receipt: {
+          type: String,
+        },
+        fee: {
+          type: Number,
+        },
       },
     ],
   },
