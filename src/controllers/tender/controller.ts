@@ -29,12 +29,12 @@ export default class Controller {
     lastDate: Joi.date().required(),
     category: Joi.string().required(),
     department: Joi.string().required(),
-    tenderManagerStatus: Joi.string(),
+    isNoticeGenerated: Joi.boolean().default(false),
     nameOfWork: Joi.string().required(),
     providedBy: Joi.string().required(),
     status: Joi.string()
       .valid(...Object.values(TenderStatus))
-      .default(TenderStatus.GM_PENDING),
+      .default(TenderStatus.SELECT_STATUS),
     items: Joi.array()
       .items(
         Joi.object({

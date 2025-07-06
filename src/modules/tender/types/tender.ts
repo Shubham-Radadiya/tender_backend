@@ -11,7 +11,7 @@ export interface ITender {
   tenderType: string;
   name: string;
   createdDate: Date;
-  tenderManagerStatus: string;
+  isNoticeGenerated: boolean;
   lastDate: Date;
   category: string | ICategory;
   department: string | IDepartment;
@@ -43,7 +43,7 @@ export class Tender implements ITender {
   name: string;
   createdDate: Date;
   lastDate: Date;
-  tenderManagerStatus: string;
+  isNoticeGenerated: boolean;
   category: string | ICategory;
   department: string | IDepartment;
   nameOfWork: string;
@@ -73,7 +73,7 @@ export class Tender implements ITender {
     this.tenderNo = input.tenderNo;
     this.tenderType = input.tenderType;
     this.name = input.name;
-    this.tenderManagerStatus = input.tenderManagerStatus;
+    this.isNoticeGenerated = input.isNoticeGenerated ?? false;
     this.createdDate = input.createdDate;
     this.lastDate = input.lastDate;
     this.category = input.category;

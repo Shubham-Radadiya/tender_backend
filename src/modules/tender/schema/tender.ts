@@ -11,6 +11,15 @@ export enum TenderStatus {
   CM_DECLINED = "CM_DECLINED",
   TM_PENDING = "TM_PENDING",
   TM_COMPLETED = "TM_COMPLETED",
+  SELECT_STATUS = "SELECT_STATUS",
+  JUNIOR_ENGINEER = "JUNIOR_ENGINEER",
+  ASSOCIATIVE_ENGINEER = "ASSOCIATIVE_ENGINEER",
+  EXECUTIVE_ENGINEER = "EXECUTIVE_ENGINEER",
+  OTHER = "OTHER",
+  DAYS_COUNT_PENDING = "DAYS_COUNT_PENDING",
+  GM_QUTATION_PENDING = "GM_QUTATION_PENDING",
+  TENDER_NOTICE_PENDING = "TENDER_NOTICE_PENDING",
+  TENDER_RECEIPT_PENDING = "TENDER_RECEIPT_PENDING",
 }
 
 const tender = new Schema<ITender>(
@@ -24,7 +33,7 @@ const tender = new Schema<ITender>(
     department: { type: Schema.Types.ObjectId, ref: "department" },
     nameOfWork: { type: String },
     providedBy: { type: String },
-    tenderManagerStatus: { type: String },
+    isNoticeGenerated: { type: Boolean, default: false },
     items: [
       {
         description: { type: String },
@@ -36,7 +45,7 @@ const tender = new Schema<ITender>(
     status: {
       type: String,
       enum: Object.values(TenderStatus),
-      default: TenderStatus.GM_PENDING,
+      default: TenderStatus.SELECT_STATUS,
     },
     // assignedTo: { type: Schema.Types.ObjectId, ref: "user" }, // Group Manager
     companyAssigned: { type: Schema.Types.ObjectId, ref: "user" }, // Company Manager
