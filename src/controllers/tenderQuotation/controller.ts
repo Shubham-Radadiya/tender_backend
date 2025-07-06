@@ -51,14 +51,14 @@ export default class Controller {
     quotationNumber: Joi.number().optional(),
     tenderFee: Joi.number().optional(),
     emd: Joi.number().optional(),
+    date: Joi.date().optional(),
+    receipt: Joi.string().optional(),
+    fee: Joi.number().optional(),
     itemRates: Joi.array().items(
       Joi.object({
         itemId: Joi.string().optional(),
         rate: Joi.number().optional(),
         amount: Joi.number().optional(),
-        date: Joi.date().optional(),
-        receipt: Joi.string().optional(),
-        fee: Joi.number().optional(),
       }).optional()
     ),
   });
@@ -283,16 +283,16 @@ export default class Controller {
         }
       }
 
-      let tenderDetails;
-      if (payloadValue?.tenderFee) {
-        tenderDetails = await getTenderById(existingTenderQuotation.tenderId);
-        if (tenderDetails.status !== TenderStatus.TM_PENDING) {
-          res.status(404).json({
-            message: "Tender Fee can't be added before GM Approval",
-          });
-          return;
-        }
-      }
+      // let tenderDetails;
+      // if (payloadValue?.tenderFee) {
+      //   tenderDetails = await getTenderById(existingTenderQuotation.tenderId);
+      //   if (tenderDetails.status !== TenderStatus.TM_PENDING) {
+      //     res.status(404).json({
+      //       message: "Tender Fee can't be added before GM Approval",
+      //     });
+      //     return;
+      //   }
+      // }
       const updatedTenderQuotation = await updateTenderQuotation(
         new TenderQuotation(mergedTenderQuotation)
       );

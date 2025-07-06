@@ -20,6 +20,15 @@ const tenderQuotation = new Schema<ITenderQuotation>(
     emd: {
       type: Number,
     },
+    date: {
+      type: Date,
+    },
+    receipt: {
+      type: String,
+    },
+    fee: {
+      type: Number,
+    },
 
     termsAndConditions: {
       type: String,
@@ -45,15 +54,6 @@ const tenderQuotation = new Schema<ITenderQuotation>(
           type: Number,
         },
         amount: Number,
-        date: {
-          type: Date,
-        },
-        receipt: {
-          type: String,
-        },
-        fee: {
-          type: Number,
-        },
       },
     ],
   },
