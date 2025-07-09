@@ -12,6 +12,7 @@ import {
   ITender,
   Tender,
   updateTender,
+  updateTenderById,
 } from "../../modules/tender";
 import { TenderStatus } from "../../modules/tender/schema";
 import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
@@ -44,6 +45,47 @@ export default class Controller {
         })
       )
       .required(),
+  });
+
+  private readonly addTenderNoticeSchema = Joi.object({
+    type: Joi.string().valid("manual", "upload").required(),
+    tenderId: Joi.string().required(),
+    fileName: Joi.when("type", {
+      is: "upload",
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    itemName: Joi.when("type", {
+      is: "manual",
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    quantity: Joi.when("type", {
+      is: "manual",
+      then: Joi.number().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    unit: Joi.when("type", {
+      is: "manual",
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    rate: Joi.when("type", {
+      is: "manual",
+      then: Joi.number().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    amount: Joi.when("type", {
+      is: "manual",
+      then: Joi.number().required(),
+      otherwise: Joi.forbidden(),
+    }),
+  });
+
+  private readonly addTenderNoticeDaysSchema = Joi.object({
+    tenderId: Joi.string().required(),
+    noticeIndex: Joi.number().required(),
+    days: Joi.number().required(),
   });
 
   private readonly updateTenderSchema = Joi.object({
@@ -248,6 +290,124 @@ export default class Controller {
         error: error?.message,
       });
       return;
+    }
+  };
+
+  protected readonly addTenderNotice = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const user = req.authUser;
+      const payload = req.body;
+
+      if (!payload) {
+        return res.status(422).json({ message: "Invalid request body" });
+      }
+
+      const payloadValue = await this.addTenderNoticeSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          if (isError(e)) {
+            return res.status(422).json(e);
+          } else {
+            return res.status(422).json({ message: e.message });
+          }
+        });
+
+      if (!payloadValue) return;
+
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER &&
+        user.role !== UserRole.GROUP_MANAGER
+      ) {
+        return res.status(403).json({
+          message: "You do not have permission to add a tender notice.",
+        });
+      }
+
+      const updatedTender = await updateTenderById(payloadValue.tenderId, {
+        $push: {
+          tenderNotice: {
+            fileName: payloadValue.fileName,
+            days: payloadValue.days,
+            itemName: payloadValue.itemName,
+            quantity: payloadValue.quantity,
+            unit: payloadValue.unit,
+            rate: payloadValue.rate,
+            amount: payloadValue.amount,
+          },
+        },
+      });
+
+      if (!updatedTender) {
+        return res.status(404).json({ message: "Tender not found" });
+      }
+
+      res.status(201).json({
+        message: "Tender notice added successfully",
+        data: "updatedTender",
+      });
+    } catch (error) {
+      console.log("Error in addTenderNotice", error);
+      res.status(400).json({ error: error?.message });
+    }
+  };
+
+  protected readonly addTenderNoticeDays = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const user = req.authUser;
+      const payload = req.body;
+
+      if (!payload) {
+        return res.status(422).json({ message: "Invalid request body" });
+      }
+
+      const payloadValue = await this.addTenderNoticeDaysSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          return res.status(422).json({
+            message: e.message,
+          });
+        });
+
+      if (!payloadValue) return;
+
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER &&
+        user.role !== UserRole.GROUP_MANAGER
+      ) {
+        return res.status(403).json({
+          message: "You do not have permission to update days.",
+        });
+      }
+
+      const updatedTender = await updateTenderById(payloadValue.tenderId, {
+        $set: {
+          [`tenderNotice.${payloadValue.noticeIndex}.days`]: payloadValue.days,
+        },
+      });
+
+      if (!updatedTender) {
+        return res.status(404).json({ message: "Tender not found" });
+      }
+
+      res.status(200).json({
+        message: "Days updated successfully in Tender Notice",
+        data: updatedTender,
+      });
+    } catch (error) {
+      console.log("Error in addTenderNoticeDays", error);
+      res.status(400).json({ error: error?.message });
     }
   };
 

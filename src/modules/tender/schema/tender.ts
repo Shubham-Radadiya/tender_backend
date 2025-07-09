@@ -34,6 +34,17 @@ const tender = new Schema<ITender>(
     nameOfWork: { type: String },
     providedBy: { type: String },
     isNoticeGenerated: { type: Boolean, default: false },
+    tenderNotice: [
+      {
+        fileName: { type: String },
+        days: { type: Number },
+        itemName: { type: String },
+        quantity: { type: Number },
+        unit: { type: String },
+        rate: { type: Number },
+        amount: { type: Number },
+      },
+    ],
     items: [
       {
         description: { type: String },

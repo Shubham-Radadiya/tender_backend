@@ -17,7 +17,6 @@ import Notification from "./controllers/notification";
 import Bill from "./controllers/bill";
 import Party from "./controllers/party";
 import PartyWork from "./controllers/partyWork";
-import TenderNotice from "./controllers/tranderNotice";
 
 export default class App {
   public static instance: express.Application;
@@ -69,7 +68,6 @@ export default class App {
       validateAuthIdToken,
       new TenderQuotation().router
     );
-    this.instance.use("/tenderNotice", validateAuthIdToken, new TenderNotice().router);
     this.instance.use("/company", validateAuthIdToken, new Company().router);
     this.instance.use("/image", validateAuthIdToken, new Image().router);
     this.instance.use(

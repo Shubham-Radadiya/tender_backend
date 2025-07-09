@@ -17,6 +17,15 @@ export interface ITender {
   department: string | IDepartment;
   nameOfWork: string;
   providedBy: string;
+  tenderNotice: {
+    fileName: string;
+    days: number;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    rate: number;
+    amount: number;
+  }[];
   items: {
     description: string;
     quantity: number;
@@ -48,6 +57,15 @@ export class Tender implements ITender {
   department: string | IDepartment;
   nameOfWork: string;
   providedBy: string;
+  tenderNotice: {
+    fileName: string;
+    days: number;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    rate: number;
+    amount: number;
+  }[];
   items: {
     description: string;
     quantity: number;
@@ -80,6 +98,7 @@ export class Tender implements ITender {
     this.department = input.department;
     this.nameOfWork = input.nameOfWork;
     this.providedBy = input.providedBy;
+    this.tenderNotice = input.tenderNotice;
     this.items = input.items;
     this.createdBy = input.createdBy;
     this.status = input.status;

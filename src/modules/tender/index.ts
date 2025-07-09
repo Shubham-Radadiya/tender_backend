@@ -5,3 +5,4 @@ export * from "./getTenderById";
 export * from "./createTender";
 export * from "./updateTender";
 export * from "./deleteTenderById";
+export * from "./updateTenderById";

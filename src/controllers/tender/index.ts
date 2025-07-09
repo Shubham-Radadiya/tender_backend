@@ -11,6 +11,8 @@ export default class Tender extends Controller {
   private initializeRoutes() {
     this.router.get("/forGM", this.getTenderForGM);
     this.router.get("/forCM", this.getTenderForCM);
+    this.router.put("/addNotice", this.addTenderNotice);
+    this.router.put("/addDays", this.addTenderNoticeDays);
     this.router.get("/byStatus", this.getTenderByStatus);
     this.router.get("/", this.getTender);
     this.router.get("/:id", this.getTender);
