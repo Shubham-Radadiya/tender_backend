@@ -166,6 +166,7 @@ export default class Controller {
         TenderStatus.GM_PENDING,
         TenderStatus.GM_ACCEPTED,
         TenderStatus.TM_PENDING,
+        TenderStatus.GM_QUTATION_PENDING,
       ]);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;

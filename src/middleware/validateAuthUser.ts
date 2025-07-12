@@ -13,16 +13,12 @@ export const validateAuthIdToken = async (
   const token = req.headers.authorization;
 
   if (!token) {
-    res
-      .status(403)
-      .json({ message: "Unauthorized request." });
+    res.status(403).json({ message: "Unauthorized request." });
     return;
   }
   const decodedToken = verifyToken(token);
   if (!decodedToken) {
-    res
-      .status(403)
-      .json({ message: "Unauthorized request." });
+    res.status(403).json({ message: "Unauthorized request." });
     return;
   }
   const userId = decodedToken.userId;
