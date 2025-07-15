@@ -111,7 +111,13 @@ export default class Controller {
   });
 
   private readonly tenderAcceptedSchema = Joi.object({
-    status: Joi.string().valid("GM_ACCEPTED", "GM_DECLINED").required(),
+    status: Joi.string()
+      .valid(
+        TenderStatus.GM_ACCEPTED,
+        TenderStatus.GM_DECLINED,
+        TenderStatus.GM_QUTATION_PENDING
+      )
+      .required(),
     declineReason: Joi.when("status", {
       is: "GM_DECLINED",
       then: Joi.string().required().messages({
@@ -304,6 +310,10 @@ export default class Controller {
 
       if (!payload) {
         return res.status(422).json({ message: "Invalid request body" });
+      }
+
+      if (payload.type === "upload" && req.file) {
+        payload.fileName = req.file.filename;
       }
 
       const payloadValue = await this.addTenderNoticeSchema
@@ -616,7 +626,8 @@ export default class Controller {
       }
 
       const action =
-        payloadValue?.status === "GM_ACCEPTED"
+        payloadValue?.status === TenderStatus.GM_ACCEPTED ||
+        TenderStatus.GM_QUTATION_PENDING
           ? `Tender '${existingTender.name}' accepted by Group Manager`
           : `Tender '${existingTender.name}' declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
 
@@ -641,7 +652,8 @@ export default class Controller {
 
       const getTMData = await getTM();
       const notificationType =
-        payloadValue?.status === "GM_ACCEPTED"
+        payloadValue?.status === TenderStatus.GM_ACCEPTED ||
+        TenderStatus.GM_QUTATION_PENDING
           ? NotificationType.TENDER_ACCEPTED
           : NotificationType.TENDER_DECLINED;
 

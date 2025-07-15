@@ -1,5 +1,6 @@
 import { Router } from "express";
 import Controller from "./controller";
+import { upload } from "../../middleware/upload";
 
 export default class Tender extends Controller {
   public router = Router();
@@ -11,7 +12,7 @@ export default class Tender extends Controller {
   private initializeRoutes() {
     this.router.get("/forGM", this.getTenderForGM);
     this.router.get("/forCM", this.getTenderForCM);
-    this.router.put("/addNotice", this.addTenderNotice);
+    this.router.put("/addNotice", upload.single("file"), this.addTenderNotice);
     this.router.put("/addDays", this.addTenderNoticeDays);
     this.router.get("/byStatus", this.getTenderByStatus);
     this.router.get("/", this.getTender);
