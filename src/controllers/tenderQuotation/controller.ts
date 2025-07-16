@@ -148,13 +148,12 @@ export default class Controller {
         res.status(404).json({ message: "Company not found" });
         return;
       }
-
-      if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
-        res.status(422).json({
-          message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
-        });
-        return;
-      }
+      // if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
+      //   res.status(422).json({
+      //     message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
+      //   });
+      //   return;
+      // }
 
       // Get existing quotations for this tender
       const existingQuotations = await getTenderQuotationsByTenderId(
@@ -166,8 +165,9 @@ export default class Controller {
         // Find winning company's quotation
         const winningCompanyQuotation = existingQuotations.find(
           (q) =>
-            q.companyId.toString() ===
-            existingTender.companyAssigned?.toString()
+            typeof q.companyId !== "string" &&
+            q.companyId._id?.toString() ===
+              existingTender.companyAssigned?.toString()
         );
 
         if (winningCompanyQuotation) {
@@ -179,7 +179,7 @@ export default class Controller {
 
           // If current company is not the winning company, validate their quotation amount
           if (
-            payloadValue.companyId.toString() !==
+            payloadValue.companyId.toString() ===
             existingTender.companyAssigned?.toString()
           ) {
             if (totalQuotationAmount < winningCompanyTotal) {
@@ -275,11 +275,50 @@ export default class Controller {
           totalQuotationAmount += item.amount || 0;
         });
 
-        if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
-          res.status(422).json({
-            message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
-          });
-          return;
+        // if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
+        //   res.status(422).json({
+        //     message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
+        //   });
+        //   return;
+        // }
+        const existingTender = await getTenderById(
+          mergedTenderQuotation.tenderId.toString()
+        );
+        const existingQuotations = await getTenderQuotationsByTenderId(
+          existingTender._id.toString()
+        );
+
+        if (existingQuotations.length > 0) {
+          const winningCompanyQuotation = existingQuotations.find(
+            (q) =>
+              typeof q.companyId !== "string" &&
+              q.companyId._id?.toString() ===
+                existingTender.companyAssigned?.toString()
+          );
+
+          if (winningCompanyQuotation) {
+            let winningCompanyTotal = 0;
+            winningCompanyQuotation.itemRates.forEach((item) => {
+              winningCompanyTotal += item.amount || 0;
+            });
+
+            const isSameQuotation =
+              winningCompanyQuotation._id?.toString() ===
+              existingTenderQuotation._id?.toString();
+
+            const isSameCompany =
+              mergedTenderQuotation.companyId.toString() ===
+              existingTender.companyAssigned?.toString();
+
+            if (isSameCompany && !isSameQuotation) {
+              if (totalQuotationAmount < winningCompanyTotal) {
+                res.status(422).json({
+                  message: `Quotation amount (${totalQuotationAmount}) cannot be less than winning company's amount (${winningCompanyTotal})`,
+                });
+                return;
+              }
+            }
+          }
         }
       }
 
