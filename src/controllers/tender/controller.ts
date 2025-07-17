@@ -174,6 +174,7 @@ export default class Controller {
         TenderStatus.GM_ACCEPTED,
         TenderStatus.TM_PENDING,
         TenderStatus.GM_QUTATION_PENDING,
+        TenderStatus.TENDER_RECEIPT_PENDING,
       ]);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
@@ -717,7 +718,7 @@ export default class Controller {
         return;
       }
 
-      if (existingTender.status !== TenderStatus.GM_ACCEPTED) {
+      if (existingTender.status !== TenderStatus.GM_QUTATION_PENDING) {
         res.status(400).json({
           message: "Tender must be in GM_ACCEPTED state before approval",
         });
@@ -751,7 +752,7 @@ export default class Controller {
       const updatedTender = await updateTender(
         new Tender({
           ...existingTender,
-          status: TenderStatus.TM_PENDING,
+          status: TenderStatus.TENDER_RECEIPT_PENDING,
           history: [
             ...(existingTender.history || []),
             {
