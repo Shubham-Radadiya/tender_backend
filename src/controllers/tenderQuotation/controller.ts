@@ -156,42 +156,29 @@ export default class Controller {
       // }
 
       // Get existing quotations for this tender
-      const existingQuotations = await getTenderQuotationsByTenderId(
-        payloadValue.tenderId.toString()
-      );
-
-      // If this is not the first quotation, check against winning company's quotation
-      if (existingQuotations.length > 0) {
-        // Find winning company's quotation
-        const winningCompanyQuotation = existingQuotations.find(
-          (q) =>
-            typeof q.companyId !== "string" &&
-            q.companyId._id?.toString() ===
-              existingTender.companyAssigned?.toString()
+      if (existingTender.tenderquotationId) {
+        const assignedQuotation = await getTenderQuotationById(
+          existingTender.tenderquotationId.toString()
         );
 
-        if (winningCompanyQuotation) {
-          // Calculate winning company's total amount
-          let winningCompanyTotal = 0;
-          winningCompanyQuotation.itemRates.forEach((item) => {
-            winningCompanyTotal += item.amount || 0;
+        if (
+          assignedQuotation &&
+          existingTender.companyAssigned?.toString() ===
+            payloadValue.companyId.toString()
+        ) {
+          let assignedQuotationTotal = 0;
+          assignedQuotation.itemRates.forEach((item) => {
+            assignedQuotationTotal += item.amount || 0;
           });
 
-          // If current company is not the winning company, validate their quotation amount
-          if (
-            payloadValue.companyId.toString() ===
-            existingTender.companyAssigned?.toString()
-          ) {
-            if (totalQuotationAmount < winningCompanyTotal) {
-              res.status(422).json({
-                message: `Quotation amount (${totalQuotationAmount}) cannot be less than winning company's amount (${winningCompanyTotal})`,
-              });
-              return;
-            }
+          if (totalQuotationAmount < assignedQuotationTotal) {
+            res.status(422).json({
+              message: `Quotation amount (${totalQuotationAmount}) cannot be less than the assigned company's previous quotation (${assignedQuotationTotal})`,
+            });
+            return;
           }
         }
       }
-
       // Create the quotation
       const newQuotation = await createTenderQuotation(
         new TenderQuotation({ ...payloadValue })
@@ -284,39 +271,33 @@ export default class Controller {
         const existingTender = await getTenderById(
           mergedTenderQuotation.tenderId.toString()
         );
-        const existingQuotations = await getTenderQuotationsByTenderId(
-          existingTender._id.toString()
-        );
-
-        if (existingQuotations.length > 0) {
-          const winningCompanyQuotation = existingQuotations.find(
-            (q) =>
-              typeof q.companyId !== "string" &&
-              q.companyId._id?.toString() ===
-                existingTender.companyAssigned?.toString()
+        if (existingTender.tenderquotationId) {
+          const assignedQuotation = await getTenderQuotationById(
+            existingTender.tenderquotationId.toString()
           );
 
-          if (winningCompanyQuotation) {
-            let winningCompanyTotal = 0;
-            winningCompanyQuotation.itemRates.forEach((item) => {
-              winningCompanyTotal += item.amount || 0;
+          if (
+            assignedQuotation &&
+            existingTender.companyAssigned?.toString() ===
+              mergedTenderQuotation.companyId.toString()
+          ) {
+            let assignedTotalAmount = 0;
+            assignedQuotation.itemRates.forEach((item) => {
+              assignedTotalAmount += item.amount || 0;
             });
 
             const isSameQuotation =
-              winningCompanyQuotation._id?.toString() ===
+              assignedQuotation._id?.toString() ===
               existingTenderQuotation._id?.toString();
 
-            const isSameCompany =
-              mergedTenderQuotation.companyId.toString() ===
-              existingTender.companyAssigned?.toString();
-
-            if (isSameCompany && !isSameQuotation) {
-              if (totalQuotationAmount < winningCompanyTotal) {
-                res.status(422).json({
-                  message: `Quotation amount (${totalQuotationAmount}) cannot be less than winning company's amount (${winningCompanyTotal})`,
-                });
-                return;
-              }
+            if (
+              !isSameQuotation &&
+              totalQuotationAmount < assignedTotalAmount
+            ) {
+              res.status(422).json({
+                message: `Quotation amount (${totalQuotationAmount}) cannot be less than assigned winning quotation amount (${assignedTotalAmount})`,
+              });
+              return;
             }
           }
         }

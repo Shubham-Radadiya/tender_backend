@@ -4,6 +4,7 @@ import { TenderStatus } from "../schema";
 import { IUser } from "../../user";
 import { ICategory } from "../../category";
 import { IDepartment } from "../../department";
+import { ITenderQuotation } from "../../tenderQuotation";
 
 export interface ITender {
   _id?: string;
@@ -35,6 +36,7 @@ export interface ITender {
   status: TenderStatus;
   // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
+  tenderquotationId?: string | ITenderQuotation;
   history?: {
     action: string;
     by: string | IUser;
@@ -75,6 +77,7 @@ export class Tender implements ITender {
   status: TenderStatus;
   // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
+  tenderquotationId?: string;
   history?: {
     action: string;
     by: string | IUser;
@@ -104,6 +107,10 @@ export class Tender implements ITender {
     this.status = input.status;
     // this.assignedTo = input.assignedTo;
     this.companyAssigned = input.companyAssigned;
+    this.tenderquotationId =
+      typeof input.tenderquotationId === "string"
+        ? input.tenderquotationId
+        : input.tenderquotationId?._id?.toString();
     this.history = input.history
       ? input.history.map((h) => ({
           action: h.action,
