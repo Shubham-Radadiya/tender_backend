@@ -281,14 +281,14 @@ export default class Controller {
         })
       );
 
-      const gmData = await getGM();
+      // const gmData = await getGM();
       // Send notification to GM
-      await sendNotification(
-        gmData._id,
-        newTender._id!,
-        NotificationType.TENDER_CREATED,
-        `New tender ${payloadValue.name} has been created and assigned to you`
-      );
+      // await sendNotification(
+      //   gmData._id,
+      //   newTender._id!,
+      //   NotificationType.TENDER_CREATED,
+      //   `New tender ${payloadValue.name} has been created and assigned to you`
+      // );
 
       const populatedTender = await getTenderById(newTender._id);
       res.status(201).json(populatedTender);
@@ -412,6 +412,17 @@ export default class Controller {
 
       if (!updatedTender) {
         return res.status(404).json({ message: "Tender not found" });
+      }
+
+      const gmData = await getGM();
+      const tenderData = await getTenderById(payloadValue.tenderId);
+      if (gmData && tenderData) {
+        await sendNotification(
+          gmData._id,
+          tenderData._id!,
+          NotificationType.TENDER_CREATED,
+          `New tender ${tenderData.name} has been created and assigned to you`
+        );
       }
 
       res.status(200).json({
