@@ -11,6 +11,7 @@ export interface IItemRate {
 
 export interface ITenderQuotation {
   _id?: string;
+  quotationId?: string;
   tenderId: string | ITender;
   companyId: string | IUser;
   quotationNumber: number;
@@ -34,6 +35,7 @@ export class TenderQuotation implements ITenderQuotation {
   tenderId: string | ITender;
   companyId: string | IUser;
   quotationNumber: number;
+  quotationId?: string;
   tenderFee: number;
   emd: number;
   itemRates: IItemRate[];
@@ -54,6 +56,9 @@ export class TenderQuotation implements ITenderQuotation {
 
     this.tenderId = input.tenderId;
     this.companyId = input.companyId;
+    this.quotationId = input.quotationId
+      ? input.quotationId.toString()
+      : new Types.ObjectId().toString();
     this.quotationNumber = input.quotationNumber;
     this.tenderFee = input.tenderFee;
     this.emd = input.emd;

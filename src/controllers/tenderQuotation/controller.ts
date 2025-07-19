@@ -46,7 +46,7 @@ export default class Controller {
   });
 
   private readonly updateTenderQuotationSchema = Joi.object({
-    tenderId: Joi.string().optional(),
+    quotationId: Joi.string().required(),
     companyId: Joi.string().optional(),
     quotationNumber: Joi.number().optional(),
     tenderFee: Joi.number().optional(),
@@ -54,13 +54,15 @@ export default class Controller {
     date: Joi.date().optional(),
     receipt: Joi.string().optional(),
     fee: Joi.number().optional(),
-    itemRates: Joi.array().items(
-      Joi.object({
-        itemId: Joi.string().optional(),
-        rate: Joi.number().optional(),
-        amount: Joi.number().optional(),
-      }).optional()
-    ),
+    itemRates: Joi.array()
+      .items(
+        Joi.object({
+          itemId: Joi.string().optional(),
+          rate: Joi.number().optional(),
+          amount: Joi.number().optional(),
+        })
+      )
+      .optional(),
   });
 
   protected readonly createTenderQuotation = async (
@@ -212,137 +214,120 @@ export default class Controller {
     }
   };
 
-  protected readonly updateTenderQuotation = async (
+  protected readonly updateTenderQuotations = async (
     req: Request,
     res: Response
-  ) => {
+  ): Promise<any> => {
     try {
       const authUser = req.authUser;
-      const tenderQuotationId = req.params.id;
+      const tenderId = req.params.id;
       const payload = req.body;
-      if (!payload) {
-        res.status(422).json({ message: "Invalid request body" });
+      if (!Array.isArray(payload) || payload.length === 0) {
+        return res
+          .status(422)
+          .json({ message: "Payload must be a non-empty array" });
       }
-      const payloadValue: Partial<ITenderQuotation> =
-        await this.updateTenderQuotationSchema
-          .validateAsync(payload)
-          .then((value) => value)
-          .catch((e) => {
-            console.log(e);
-            res.status(422).json(isError(e) ? e : { message: e.message });
-            return null;
-          });
-
-      if (!payloadValue) return;
 
       if (
         authUser.role !== UserRole.ADMIN &&
         authUser.role !== UserRole.GROUP_MANAGER &&
         authUser.role !== UserRole.TENDER_MANAGER
       ) {
-        res.status(422).json({ message: "Not have permission to change." });
-        return;
-      }
-
-      const existingTenderQuotation: any = await getTenderQuotationById(
-        tenderQuotationId
-      );
-      if (!existingTenderQuotation) {
-        res.status(404).json({ message: "Tender Quotation not found" });
-        return;
-      }
-
-      // if (payloadValue?.companyId.toString()) {
-      //   if (
-      //     existingTenderQuotation?.companyId.toString() !==
-      //     payloadValue?.companyId.toString()
-      //   ) {
-      //     res.status(404).json({ message: "Mis-Match Company Id." });
-      //     return;
-      //   }
-      // }
-      const mergedTenderQuotation = {
-        ...existingTenderQuotation,
-        ...payloadValue,
-      };
-
-      if (payloadValue.itemRates) {
-        const companyData = await getUserById(mergedTenderQuotation.companyId);
-        let totalQuotationAmount = 0;
-        payloadValue.itemRates.forEach((item) => {
-          totalQuotationAmount += item.amount || 0;
+        return res.status(403).json({
+          message: "You do not have permission to update quotations.",
         });
+      }
 
-        // if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
-        //   res.status(422).json({
-        //     message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
-        //   });
-        //   return;
-        // }
-        const existingTender = await getTenderById(
-          mergedTenderQuotation.tenderId.toString()
-        );
-        const existingQuotations = await getTenderQuotationsByTenderId(
-          existingTender._id.toString()
-        );
+      const updatedQuotations = [];
 
-        if (existingQuotations.length > 0) {
-          const winningCompanyQuotation = existingQuotations.find(
+      for (const quotationPayload of payload) {
+        const validatedPayload: Partial<ITenderQuotation> =
+          await this.updateTenderQuotationSchema.validateAsync(
+            quotationPayload
+          );
+
+        const { quotationId, ...updateData } = validatedPayload;
+
+        if (!quotationId) {
+          return res
+            .status(422)
+            .json({ message: "Each object must contain a quotationId" });
+        }
+        const existingQuotation = await getTenderQuotationById(quotationId);
+        if (!existingQuotation) {
+          return res.status(404).json({
+            message: `Tender Quotation not found for ID ${quotationId}`,
+          });
+        }
+
+        if (existingQuotation.tenderId.toString() !== tenderId) {
+          return res.status(400).json({
+            message: `Quotation ${quotationId} does not belong to tender ${tenderId}`,
+          });
+        }
+
+        const mergedQuotation = {
+          ...existingQuotation,
+          ...validatedPayload,
+        };
+
+        if (validatedPayload.itemRates) {
+          let totalQuotationAmount = 0;
+          validatedPayload.itemRates.forEach((item) => {
+            totalQuotationAmount += item.amount || 0;
+          });
+
+          const existingTender = await getTenderById(tenderId);
+          const existingQuotations = await getTenderQuotationsByTenderId(
+            tenderId
+          );
+
+          const winningQuotation = existingQuotations.find(
             (q) =>
               typeof q.companyId !== "string" &&
               q.companyId._id?.toString() ===
                 existingTender.companyAssigned?.toString()
           );
 
-          if (winningCompanyQuotation) {
-            let winningCompanyTotal = 0;
-            winningCompanyQuotation.itemRates.forEach((item) => {
-              winningCompanyTotal += item.amount || 0;
-            });
-
+          if (winningQuotation) {
             const isSameQuotation =
-              winningCompanyQuotation._id?.toString() ===
-              existingTenderQuotation._id?.toString();
-
+              winningQuotation._id?.toString() ===
+              existingQuotation._id?.toString();
             const isSameCompany =
-              mergedTenderQuotation.companyId.toString() ===
+              existingQuotation.companyId.toString() ===
               existingTender.companyAssigned?.toString();
 
-            if (isSameCompany && !isSameQuotation) {
-              if (totalQuotationAmount < winningCompanyTotal) {
-                res.status(422).json({
-                  message: `Quotation amount (${totalQuotationAmount}) cannot be less than winning company's amount (${winningCompanyTotal})`,
-                });
-                return;
-              }
+            let winningTotal = 0;
+            winningQuotation.itemRates.forEach((item) => {
+              winningTotal += item.amount || 0;
+            });
+
+            if (
+              isSameCompany &&
+              !isSameQuotation &&
+              totalQuotationAmount < winningTotal
+            ) {
+              return res.status(422).json({
+                message: `Quotation ${quotationId} amount (${totalQuotationAmount}) cannot be less than winning quotation amount (${winningTotal})`,
+              });
             }
           }
         }
+
+        const updated = await updateTenderQuotation(
+          new TenderQuotation(mergedQuotation)
+        );
+        const populated = await getPopulatedTenderQuotationById(updated._id);
+        updatedQuotations.push(populated);
       }
 
-      // let tenderDetails;
-      // if (payloadValue?.tenderFee) {
-      //   tenderDetails = await getTenderById(existingTenderQuotation.tenderId);
-      //   if (tenderDetails.status !== TenderStatus.TM_PENDING) {
-      //     res.status(404).json({
-      //       message: "Tender Fee can't be added before GM Approval",
-      //     });
-      //     return;
-      //   }
-      // }
-      const updatedTenderQuotation = await updateTenderQuotation(
-        new TenderQuotation(mergedTenderQuotation)
-      );
-
-      const populatedTQ = await getPopulatedTenderQuotationById(
-        updatedTenderQuotation._id
-      );
-      res.status(200).json({ updatedTenderQuotation: populatedTQ });
-      return;
+      res.status(200).json({
+        message: "Tender Quotations updated successfully",
+        updatedTenderQuotations: updatedQuotations,
+      });
     } catch (error) {
-      console.log("Error in update Tender Quotation", error);
+      console.error("Error in updateTenderQuotations", error);
       res.status(500).json({ message: error.message });
-      return;
     }
   };
 
