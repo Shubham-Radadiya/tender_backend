@@ -157,38 +157,43 @@ export default class Controller {
       //   return;
       // }
 
-      // Get existing quotations for this tender
       const existingQuotations = await getTenderQuotationsByTenderId(
         payloadValue.tenderId.toString()
       );
 
-      // If this is not the first quotation, check against winning company's quotation
-      if (existingQuotations.length > 0) {
-        // Find winning company's quotation
-        const winningCompanyQuotation = existingQuotations.find(
-          (q) =>
-            typeof q.companyId !== "string" &&
-            q.companyId._id?.toString() ===
-              existingTender.companyAssigned?.toString()
-        );
+      if (existingTender.companyAssigned) {
+        const companyAssignedId = existingTender.companyAssigned.toString();
 
-        if (winningCompanyQuotation) {
-          let winningCompanyTotal = 0;
-          winningCompanyQuotation.itemRates.forEach((item) => {
-            winningCompanyTotal += item.amount || 0;
-          });
+        if (payloadValue.companyId.toString() !== companyAssignedId) {
+          const assignedCompanyQuotations = existingQuotations.filter(
+            (q) =>
+              typeof q.companyId !== "string" &&
+              q.companyId._id?.toString() === companyAssignedId
+          );
 
-          if (
-            payloadValue.companyId.toString() ===
-            existingTender.companyAssigned?.toString()
-          ) {
-            if (totalQuotationAmount < winningCompanyTotal) {
-              res.status(422).json({
-                message: `Quotation amount (${totalQuotationAmount}) cannot be less than winning company's amount (${winningCompanyTotal})`,
+          if (assignedCompanyQuotations.length > 0) {
+            let highestAssignedAmount = 0;
+
+            for (const quotation of assignedCompanyQuotations) {
+              let sum = 0;
+              quotation.itemRates.forEach((item) => {
+                sum += item.amount || 0;
               });
-              return;
+              if (sum > highestAssignedAmount) {
+                highestAssignedAmount = sum;
+              }
+            }
+
+            if (totalQuotationAmount < highestAssignedAmount) {
+              return res.status(422).json({
+                message: `Quotation amount (${totalQuotationAmount}) cannot be less than previously submitted amount (${highestAssignedAmount}) by the assigned company`,
+              });
             }
           }
+        } else {
+          return res.status(422).json({
+            message: `Quotation cannot be created for the assigned company (${companyAssignedId})`,
+          });
         }
       }
 
@@ -222,6 +227,7 @@ export default class Controller {
       const authUser = req.authUser;
       const tenderId = req.params.id;
       const payload = req.body;
+
       if (!Array.isArray(payload) || payload.length === 0) {
         return res
           .status(422)
@@ -238,21 +244,71 @@ export default class Controller {
         });
       }
 
+      const validatedPayloads: Partial<ITenderQuotation>[] = [];
+      for (const quotationPayload of payload) {
+        const validated = await this.updateTenderQuotationSchema.validateAsync(
+          quotationPayload
+        );
+        validatedPayloads.push(validated);
+      }
+
+      const existingTender = await getTenderById(tenderId);
+      const assignedCompanyId = existingTender.companyAssigned?.toString();
+
+      const assignedCompanyQuotations = validatedPayloads.filter(
+        (q) => q.companyId?.toString() === assignedCompanyId
+      );
+      if (assignedCompanyQuotations.length > 0) {
+        const winningQuotation = assignedCompanyQuotations.reduce(
+          (max, curr) => {
+            const total =
+              curr.itemRates?.reduce(
+                (sum, item) => sum + (item.amount || 0),
+                0
+              ) || 0;
+            const maxTotal =
+              max.itemRates?.reduce(
+                (sum, item) => sum + (item.amount || 0),
+                0
+              ) || 0;
+            return total > maxTotal ? curr : max;
+          }
+        );
+
+        const winningTotal =
+          winningQuotation.itemRates?.reduce(
+            (sum, item) => sum + (item.amount || 0),
+            0
+          ) || 0;
+
+        for (const quotation of validatedPayloads) {
+          if (quotation.companyId?.toString() !== assignedCompanyId) {
+            const total =
+              quotation.itemRates?.reduce(
+                (sum, item) => sum + (item.amount || 0),
+                0
+              ) || 0;
+
+            if (total < winningTotal) {
+              return res.status(422).json({
+                message: `Quotation ${quotation.quotationId} amount (${total}) cannot be less than the highest quotation of the assigned company (${winningTotal})`,
+              });
+            }
+          }
+        }
+      }
+
       const updatedQuotations = [];
 
-      for (const quotationPayload of payload) {
-        const validatedPayload: Partial<ITenderQuotation> =
-          await this.updateTenderQuotationSchema.validateAsync(
-            quotationPayload
-          );
-
-        const { quotationId, ...updateData } = validatedPayload;
+      for (const validatedQuotation of validatedPayloads) {
+        const { quotationId, ...updateData } = validatedQuotation;
 
         if (!quotationId) {
           return res
             .status(422)
             .json({ message: "Each object must contain a quotationId" });
         }
+
         const existingQuotation = await getTenderQuotationById(quotationId);
         if (!existingQuotation) {
           return res.status(404).json({
@@ -268,51 +324,8 @@ export default class Controller {
 
         const mergedQuotation = {
           ...existingQuotation,
-          ...validatedPayload,
+          ...validatedQuotation,
         };
-
-        if (validatedPayload.itemRates) {
-          let totalQuotationAmount = 0;
-          validatedPayload.itemRates.forEach((item) => {
-            totalQuotationAmount += item.amount || 0;
-          });
-
-          const existingTender = await getTenderById(tenderId);
-          const existingQuotations = await getTenderQuotationsByTenderId(
-            tenderId
-          );
-
-          const winningQuotation = existingQuotations.find(
-            (q) =>
-              typeof q.companyId !== "string" &&
-              q.companyId._id?.toString() ===
-                existingTender.companyAssigned?.toString()
-          );
-
-          if (winningQuotation) {
-            const isSameQuotation =
-              winningQuotation._id?.toString() ===
-              existingQuotation._id?.toString();
-            const isSameCompany =
-              existingQuotation.companyId.toString() ===
-              existingTender.companyAssigned?.toString();
-
-            let winningTotal = 0;
-            winningQuotation.itemRates.forEach((item) => {
-              winningTotal += item.amount || 0;
-            });
-
-            if (
-              isSameCompany &&
-              !isSameQuotation &&
-              totalQuotationAmount < winningTotal
-            ) {
-              return res.status(422).json({
-                message: `Quotation ${quotationId} amount (${totalQuotationAmount}) cannot be less than winning quotation amount (${winningTotal})`,
-              });
-            }
-          }
-        }
 
         const updated = await updateTenderQuotation(
           new TenderQuotation(mergedQuotation)
