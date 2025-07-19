@@ -60,7 +60,6 @@ const tender = new Schema<ITender>(
     },
     // assignedTo: { type: Schema.Types.ObjectId, ref: "user" }, // Group Manager
     companyAssigned: { type: Schema.Types.ObjectId, ref: "user" }, // Company Manager
-    tenderquotationId: { type: Schema.Types.ObjectId, ref: "tenderquotation" },
     history: [
       {
         action: String,

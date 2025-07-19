@@ -108,7 +108,6 @@ export default class Controller {
 
   private readonly tenderGotToSchema = Joi.object({
     companyAssigned: Joi.string().required(),
-    tenderquotationId: Joi.string().optional(),
   });
 
   private readonly tenderAcceptedSchema = Joi.object({
@@ -577,14 +576,9 @@ export default class Controller {
         res.status(404).json({ message: "Invalid Company Id" });
         return;
       }
-      if (!payloadValue?.tenderquotationId) {
-        res.status(404).json({ message: "Invalid Tender Quotation Id" });
-        return;
-      }
       const companyDetails = await getUserById(
         payloadValue?.companyAssigned.toString()
       );
-
       const mergedTender = {
         ...existingTender,
         ...payloadValue,
