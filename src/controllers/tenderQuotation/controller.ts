@@ -164,36 +164,30 @@ export default class Controller {
       if (existingTender.companyAssigned) {
         const companyAssignedId = existingTender.companyAssigned.toString();
 
-        if (payloadValue.companyId.toString() !== companyAssignedId) {
-          const assignedCompanyQuotations = existingQuotations.filter(
-            (q) =>
-              typeof q.companyId !== "string" &&
-              q.companyId._id?.toString() === companyAssignedId
-          );
+        const assignedCompanyQuotations = existingQuotations.filter(
+          (q) =>
+            typeof q.companyId !== "string" &&
+            q.companyId._id?.toString() === companyAssignedId
+        );
 
-          if (assignedCompanyQuotations.length > 0) {
-            let highestAssignedAmount = 0;
+        if (assignedCompanyQuotations.length > 0) {
+          let highestAssignedAmount = 0;
 
-            for (const quotation of assignedCompanyQuotations) {
-              let sum = 0;
-              quotation.itemRates.forEach((item) => {
-                sum += item.amount || 0;
-              });
-              if (sum > highestAssignedAmount) {
-                highestAssignedAmount = sum;
-              }
-            }
-
-            if (totalQuotationAmount < highestAssignedAmount) {
-              return res.status(422).json({
-                message: `Quotation amount (${totalQuotationAmount}) cannot be less than previously submitted amount (${highestAssignedAmount}) by the assigned company`,
-              });
+          for (const quotation of assignedCompanyQuotations) {
+            let sum = 0;
+            quotation.itemRates.forEach((item) => {
+              sum += item.amount || 0;
+            });
+            if (sum > highestAssignedAmount) {
+              highestAssignedAmount = sum;
             }
           }
-        } else {
-          return res.status(422).json({
-            message: `Quotation cannot be created for the assigned company (${companyAssignedId})`,
-          });
+
+          if (totalQuotationAmount < highestAssignedAmount) {
+            return res.status(422).json({
+              message: `Quotation amount (${totalQuotationAmount}) cannot be less than previously submitted amount (${highestAssignedAmount}) by the assigned company`,
+            });
+          }
         }
       }
 
@@ -282,18 +276,16 @@ export default class Controller {
           ) || 0;
 
         for (const quotation of validatedPayloads) {
-          if (quotation.companyId?.toString() !== assignedCompanyId) {
-            const total =
-              quotation.itemRates?.reduce(
-                (sum, item) => sum + (item.amount || 0),
-                0
-              ) || 0;
+          const total =
+            quotation.itemRates?.reduce(
+              (sum, item) => sum + (item.amount || 0),
+              0
+            ) || 0;
 
-            if (total < winningTotal) {
-              return res.status(422).json({
-                message: `Quotation ${quotation.quotationId} amount (${total}) cannot be less than the highest quotation of the assigned company (${winningTotal})`,
-              });
-            }
+          if (total < winningTotal) {
+            return res.status(422).json({
+              message: `Quotation ${quotation.quotationId} amount (${total}) cannot be less than the highest quotation of the assigned company (${winningTotal})`,
+            });
           }
         }
       }
