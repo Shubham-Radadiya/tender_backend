@@ -9,7 +9,7 @@ import {
   Tender,
   updateTender,
 } from "../../modules/tender";
-import { TenderStatus } from "../../modules/tender/schema";
+import { TenderModel } from "../../modules/tender/schema";
 import {
   createTenderQuotation,
   deleteTenderQuotationById,
@@ -220,12 +220,17 @@ export default class Controller {
     try {
       const authUser = req.authUser;
       const tenderId = req.params.id;
-      const payload = req.body;
+      const { companyAssigned, quotation: quotationPayloads } = req.body;
 
-      if (!Array.isArray(payload) || payload.length === 0) {
-        return res
-          .status(422)
-          .json({ message: "Payload must be a non-empty array" });
+      if (
+        !companyAssigned ||
+        !Array.isArray(quotationPayloads) ||
+        quotationPayloads.length === 0
+      ) {
+        return res.status(422).json({
+          message:
+            "`companyAssigned` and non-empty `quotation` array are required in the payload.",
+        });
       }
 
       if (
@@ -239,23 +244,20 @@ export default class Controller {
       }
 
       const validatedPayloads: Partial<ITenderQuotation>[] = [];
-      for (const quotationPayload of payload) {
+      for (const quotation of quotationPayloads) {
         const validated = await this.updateTenderQuotationSchema.validateAsync(
-          quotationPayload
+          quotation
         );
         validatedPayloads.push(validated);
       }
 
-      const existingTender = await getTenderById(tenderId);
-      const assignedCompanyId = existingTender.companyAssigned?.toString();
-
       const assignedCompanyQuotations = validatedPayloads.filter(
-        (q) => q.companyId?.toString() === assignedCompanyId
+        (q) => q.companyId?.toString() === companyAssigned.toString()
       );
       if (assignedCompanyQuotations.length > 0) {
         const winningQuotation = assignedCompanyQuotations.reduce(
           (max, curr) => {
-            const total =
+            const currTotal =
               curr.itemRates?.reduce(
                 (sum, item) => sum + (item.amount || 0),
                 0
@@ -265,7 +267,7 @@ export default class Controller {
                 (sum, item) => sum + (item.amount || 0),
                 0
               ) || 0;
-            return total > maxTotal ? curr : max;
+            return currTotal > maxTotal ? curr : max;
           }
         );
 
@@ -275,16 +277,20 @@ export default class Controller {
             0
           ) || 0;
 
-        for (const quotation of validatedPayloads) {
-          const total =
-            quotation.itemRates?.reduce(
-              (sum, item) => sum + (item.amount || 0),
-              0
-            ) || 0;
-
-          if (total < winningTotal) {
+        for (const q of validatedPayloads) {
+          console.log("qTotal", q);
+          const qTotal =
+            q.itemRates?.reduce((sum, item) => sum + (item.amount || 0), 0) ||
+            0;
+          console.log(
+            "qTotal < winningTotal",
+            qTotal < winningTotal,
+            qTotal,
+            winningTotal
+          );
+          if (qTotal < winningTotal) {
             return res.status(422).json({
-              message: `Quotation ${quotation.quotationId} amount (${total}) cannot be less than the highest quotation of the assigned company (${winningTotal})`,
+              message: `Quotation ${q.quotationId} amount (${qTotal}) cannot be less than the highest quotation of the assigned company (${winningTotal})`,
             });
           }
         }
@@ -298,7 +304,7 @@ export default class Controller {
         if (!quotationId) {
           return res
             .status(422)
-            .json({ message: "Each object must contain a quotationId" });
+            .json({ message: "Each quotation must include a quotationId." });
         }
 
         const existingQuotation = await getTenderQuotationById(quotationId);
@@ -325,6 +331,14 @@ export default class Controller {
         const populated = await getPopulatedTenderQuotationById(updated._id);
         updatedQuotations.push(populated);
       }
+
+      const tender = await TenderModel.findById(tenderId);
+      if (!tender) {
+        return res.status(404).json({ message: "Tender not found." });
+      }
+
+      tender.companyAssigned = companyAssigned;
+      await tender.save();
 
       res.status(200).json({
         message: "Tender Quotations updated successfully",
