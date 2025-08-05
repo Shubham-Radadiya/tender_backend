@@ -471,7 +471,6 @@ export default class Controller {
       res.status(500).json({ error: error?.message });
     }
   };
-  s;
 
   protected readonly updateTender = async (
     req: Request,
