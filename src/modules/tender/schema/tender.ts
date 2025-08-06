@@ -24,11 +24,12 @@ export enum TenderStatus {
 
 const tender = new Schema<ITender>(
   {
-    tenderNo: { type: String },
+    // tenderNo: { type: String },
+    srNo: { type: String, default: null },
     name: { type: String },
     tenderType: { type: String, default: "GEM" },
     createdDate: { type: Date },
-    lastDate: { type: Date },
+    // lastDate: { type: Date },
     category: { type: Schema.Types.ObjectId, ref: "category" },
     department: { type: Schema.Types.ObjectId, ref: "department" },
     nameOfWork: { type: String },
@@ -65,6 +66,12 @@ const tender = new Schema<ITender>(
         action: String,
         by: { type: Schema.Types.ObjectId, ref: "user" },
         date: Date,
+      },
+    ],
+    partyData: [
+      {
+        id: { type: Schema.Types.ObjectId, required: true },
+        type: { type: String, enum: ["user", "party"], required: true },
       },
     ],
     declineReason: { type: String },

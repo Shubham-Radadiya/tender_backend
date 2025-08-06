@@ -4,7 +4,7 @@ import { TenderStatus } from "../schema";
 import { IUser } from "../../user";
 import { ICategory } from "../../category";
 import { IDepartment } from "../../department";
-import { ITenderQuotation } from "../../tenderQuotation";
+import { IPartyOrUser } from "../../tenderParty";
 
 export interface ITender {
   _id?: string;
@@ -44,6 +44,8 @@ export interface ITender {
   declineReason: string;
   createdAt?: Date;
   updatedAt?: Date;
+  partyData?: IPartyOrUser[];
+  srNo?: string;
 }
 
 export class Tender implements ITender {
@@ -84,6 +86,8 @@ export class Tender implements ITender {
   declineReason: string;
   createdAt?: Date;
   updatedAt?: Date;
+  partyData?: IPartyOrUser[];
+  srNo?: string;
 
   constructor(input: ITender) {
     this._id = input._id
@@ -115,6 +119,9 @@ export class Tender implements ITender {
     this.declineReason = input.declineReason;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
+    this.partyData = input.partyData || [];
+    this.srNo =
+      input.srNo || Math.floor(1000 + Math.random() * 9000).toString();
   }
 
   toJSON(): ITender {

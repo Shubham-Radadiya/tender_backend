@@ -26,5 +26,6 @@ export default class Tender extends Controller {
     this.router.delete("/:id", this.deleteTender);
     this.router.put("/acceptByCM/:id", this.tenderAcceptedByCM);
     this.router.put("/passToCM/:id", this.passTenderToCM);
+    this.router.get("/party-data/:id", this.getTenderPartyData);
   }
 }

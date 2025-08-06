@@ -14,20 +14,21 @@ import {
   updateTender,
   updateTenderById,
 } from "../../modules/tender";
-import { TenderStatus } from "../../modules/tender/schema";
+import { TenderModel, TenderStatus } from "../../modules/tender/schema";
 import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
 import { NotificationType } from "../../modules/notification/schema/notification";
 import { sendNotification } from "../../helper/sendNotification";
 import { getGM, getTM, getUserById } from "../../modules/user";
-import { UserRole } from "../../modules/user/schema";
+import { UserModel, UserRole } from "../../modules/user/schema";
 import { updateNotification } from "../../modules/notification";
+import { TenderPartyModel } from "../../modules/tenderParty/schema";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
-    tenderNo: Joi.string().required(),
+    // tenderNo: Joi.string().required(),
     name: Joi.string().required(),
     createdDate: Joi.date().required(),
-    lastDate: Joi.date().required(),
+    // lastDate: Joi.date().required(),
     category: Joi.string().required(),
     department: Joi.string().required(),
     isNoticeGenerated: Joi.boolean().default(false),
@@ -45,6 +46,7 @@ export default class Controller {
         })
       )
       .required(),
+    partyData: Joi.array(),
   });
 
   private readonly addTenderNoticeSchema = Joi.object({
@@ -89,10 +91,9 @@ export default class Controller {
   });
 
   private readonly updateTenderSchema = Joi.object({
-    tenderNo: Joi.string(),
+    // tenderNo: Joi.string(),
     name: Joi.string(),
     createdDate: Joi.date(),
-    lastDate: Joi.date(),
     category: Joi.string(),
     department: Joi.string(),
     nameOfWork: Joi.string(),
@@ -104,6 +105,7 @@ export default class Controller {
         unit: Joi.string().required(),
       })
     ),
+    partyData: Joi.array(),
   });
 
   private readonly tenderGotToSchema = Joi.object({
@@ -266,6 +268,8 @@ export default class Controller {
           .json({ message: "Don't have access to generate the Tender." });
         return;
       }
+      const randomNumber = Math.floor(1000 + Math.random() * 9000);
+
       const newTender = await createTender(
         new Tender({
           ...payloadValue,
@@ -903,6 +907,58 @@ export default class Controller {
       console.log("Error in Tender Accepted By CM", error);
       res.status(500).json({ message: error.message });
       return;
+    }
+  };
+  protected readonly getTenderPartyData = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const tenderId = req.params.id;
+
+      const tender = await getTenderById(tenderId);
+
+      if (!tender) {
+        return res.status(404).json({ message: "Tender not found" });
+      }
+
+      const partyData = tender.partyData || [];
+
+      const userIds = partyData
+        .filter((entry) => entry.type === "user")
+        .map((entry) => entry.id);
+
+      const partyIds = partyData
+        .filter((entry) => entry.type === "party")
+        .map((entry) => entry.id);
+
+      const [users, parties] = await Promise.all([
+        UserModel.find({ _id: { $in: userIds } }, "name email address").lean(),
+        TenderPartyModel.find(
+          { _id: { $in: partyIds } },
+          "name email address"
+        ).lean(),
+      ]);
+
+      const userList = users.map((user) => ({
+        ...user,
+        type: "user",
+      }));
+
+      const partyList = parties.map((party) => ({
+        ...party,
+        type: "party",
+      }));
+
+      const combined = [...userList, ...partyList];
+
+      return res.status(200).json({
+        total: combined.length,
+        data: combined,
+      });
+    } catch (error) {
+      console.error("Error fetching party data:", error);
+      return res.status(500).json({ message: "Server error" });
     }
   };
 }
