@@ -26,24 +26,26 @@ import { sendNotification } from "../../helper/sendNotification";
 import { NotificationType } from "../../modules/notification/schema";
 
 export default class Controller {
-  private readonly createTenderQuotationSchema = Joi.object({
-    tenderId: Joi.string().required(),
-    companyId: Joi.string().required(),
-    itemRates: Joi.array()
-      .items(
-        Joi.object({
-          itemId: Joi.string().required(),
-          rate: Joi.number().required(),
-          amount: Joi.number().optional(),
-        })
-      )
-      .required(),
-    termsAndConditions: Joi.string().optional(),
-    form: Joi.string().optional(),
-    to: Joi.string().optional(),
-    refOne: Joi.string().optional(),
-    refTwo: Joi.string().optional(),
-  });
+  private readonly createMultipleTenderQuotationSchema = Joi.array().items(
+    Joi.object({
+      tenderId: Joi.string().required(),
+      companyId: Joi.string().required(),
+      itemRates: Joi.array()
+        .items(
+          Joi.object({
+            itemId: Joi.string().required(),
+            rate: Joi.number().required(),
+            amount: Joi.number().optional(),
+          })
+        )
+        .required(),
+      termsAndConditions: Joi.string().optional(),
+      form: Joi.string().optional(),
+      to: Joi.string().optional(),
+      refOne: Joi.string().optional(),
+      refTwo: Joi.string().optional(),
+    })
+  );
 
   private readonly updateTenderQuotationSchema = Joi.object({
     quotationId: Joi.string().required(),
@@ -71,145 +73,112 @@ export default class Controller {
   ): Promise<any> => {
     try {
       const authUser = req.authUser;
-      const payload = req.body;
-      if (!payload) {
-        res.status(422).json({ message: "Invalid request body" });
-      }
+      const { companyAssigned, quotations } = req.body;
 
-      const payloadValue: ITenderQuotation =
-        await this.createTenderQuotationSchema
-          .validateAsync(payload)
-          .then((value) => {
-            return value;
-          })
-          .catch((e) => {
-            console.log(e);
-            if (isError(e)) {
-              res.status(422).json(e);
-              return;
-            } else {
-              res.status(422).json({ message: e.message });
-              return;
-            }
-          });
-      if (!payloadValue) {
-        return;
+      if (
+        !companyAssigned ||
+        !Array.isArray(quotations) ||
+        quotations.length === 0
+      ) {
+        return res.status(422).json({
+          message:
+            "`companyAssigned` and non-empty `quotations` array are required.",
+        });
       }
 
       if (
         authUser.role !== UserRole.ADMIN &&
         authUser.role !== UserRole.GROUP_MANAGER
       ) {
-        res.status(422).json({ message: "Not have permission to create." });
-        return;
+        return res.status(403).json({
+          message: "You do not have permission to create quotations.",
+        });
       }
 
-      // Check if tender exists and is in GM_ACCEPTED state
-      const existingTender = await getTenderById(
-        payloadValue.tenderId.toString()
-      );
-      if (!existingTender) {
-        res.status(404).json({ message: "Tender not found" });
-        return;
-      }
-
-      if (existingTender?.tenderType === "LTD") {
-        const missingFields = [];
-
-        if (!payloadValue.termsAndConditions)
-          missingFields.push("termsAndConditions");
-        if (!payloadValue.form) missingFields.push("form");
-        if (!payloadValue.to) missingFields.push("to");
-        if (!payloadValue.refOne) missingFields.push("refOne");
-        if (!payloadValue.refTwo) missingFields.push("refTwo");
-
-        if (missingFields.length > 0) {
-          return res.status(422).json({
-            message: `Missing required fields for LTD tender: ${missingFields.join(
-              ", "
-            )}`,
-          });
-        }
-      } else {
-        delete payloadValue.termsAndConditions;
-        delete payloadValue.form;
-        delete payloadValue.to;
-        delete payloadValue.refOne;
-        delete payloadValue.refTwo;
-      }
-
-      // Calculate total quotation amount
-      let totalQuotationAmount = 0;
-      payloadValue.itemRates.forEach((item) => {
-        totalQuotationAmount += item.amount || 0;
-      });
-
-      // Get company data and check annual tender cap
-      const companyData = await getUserById(payloadValue.companyId.toString());
-      if (!companyData) {
-        res.status(404).json({ message: "Company not found" });
-        return;
-      }
-      // if (totalQuotationAmount > companyData.companyDetails.annualTenderCap) {
-      //   res.status(422).json({
-      //     message: `Quotation amount (${totalQuotationAmount}) exceeds company's annual tender cap (${companyData.companyDetails.annualTenderCap})`,
-      //   });
-      //   return;
-      // }
-
-      const existingQuotations = await getTenderQuotationsByTenderId(
-        payloadValue.tenderId.toString()
-      );
-
-      if (existingTender.companyAssigned) {
-        const companyAssignedId = existingTender.companyAssigned.toString();
-
-        const assignedCompanyQuotations = existingQuotations.filter(
-          (q) =>
-            typeof q.companyId !== "string" &&
-            q.companyId._id?.toString() === companyAssignedId
+      const validatedQuotations: ITenderQuotation[] =
+        await this.createMultipleTenderQuotationSchema.validateAsync(
+          quotations
         );
 
-        if (assignedCompanyQuotations.length > 0) {
-          let highestAssignedAmount = 0;
+      const tenderId = validatedQuotations[0].tenderId;
+      if (validatedQuotations.some((q) => q.tenderId !== tenderId)) {
+        return res.status(400).json({
+          message: "All quotations must belong to the same tender.",
+        });
+      }
 
-          for (const quotation of assignedCompanyQuotations) {
-            let sum = 0;
-            quotation.itemRates.forEach((item) => {
-              sum += item.amount || 0;
-            });
-            if (sum > highestAssignedAmount) {
-              highestAssignedAmount = sum;
-            }
-          }
+      const tender = await TenderModel.findById(tenderId);
+      if (!tender) {
+        return res.status(404).json({ message: "Tender not found." });
+      }
 
-          if (totalQuotationAmount < highestAssignedAmount) {
+      const createdQuotations = [];
+
+      for (const q of validatedQuotations) {
+        if (tender.tenderType === "LTD") {
+          const missing = [];
+          if (!q.termsAndConditions) missing.push("termsAndConditions");
+          if (!q.form) missing.push("form");
+          if (!q.to) missing.push("to");
+          if (!q.refOne) missing.push("refOne");
+          if (!q.refTwo) missing.push("refTwo");
+
+          if (missing.length > 0) {
             return res.status(422).json({
-              message: `Quotation amount (${totalQuotationAmount}) cannot be less than previously submitted amount (${highestAssignedAmount}) by the assigned company`,
+              message: `Missing fields for LTD tender: ${missing.join(", ")}`,
+            });
+          }
+        } else {
+          delete q.termsAndConditions;
+          delete q.form;
+          delete q.to;
+          delete q.refOne;
+          delete q.refTwo;
+        }
+      }
+
+      const assignedCompanyQuotations = validatedQuotations.filter(
+        (q) => q.companyId?.toString() === companyAssigned.toString()
+      );
+
+      if (assignedCompanyQuotations.length > 0) {
+        const maxExistingAmount = Math.max(
+          ...assignedCompanyQuotations.map(
+            (q) =>
+              q.itemRates?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0
+          )
+        );
+
+        for (const q of validatedQuotations) {
+          const totalAmount =
+            q.itemRates?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
+
+          if (totalAmount < maxExistingAmount) {
+            return res.status(422).json({
+              message: `Quotation amount (${totalAmount}) cannot be less than previous max (${maxExistingAmount}) for assigned company.`,
             });
           }
         }
       }
 
-      // Create the quotation
-      const newQuotation = await createTenderQuotation(
-        new TenderQuotation({ ...payloadValue })
-      );
+      for (const q of validatedQuotations) {
+        const created = await createTenderQuotation(
+          new TenderQuotation({ ...q })
+        );
+        const populated = await getPopulatedTenderQuotationById(created._id);
+        createdQuotations.push(populated);
+      }
 
-      const populatedTQ = await getPopulatedTenderQuotationById(
-        newQuotation._id
-      );
-      res.status(201).json({
-        message: "Quotation created successfully",
-        quotation: populatedTQ,
+      tender.companyAssigned = companyAssigned;
+      await tender.save();
+
+      return res.status(201).json({
+        message: "Quotations created successfully.",
+        quotations: createdQuotations,
       });
-      return;
     } catch (error) {
-      console.log("Error in createTenderQuotation ", error);
-      res.status(400).json({
-        error: error?.message,
-      });
-      return;
+      console.error("Error in createTenderQuotations", error);
+      return res.status(500).json({ message: error.message });
     }
   };
 
@@ -221,7 +190,6 @@ export default class Controller {
       const authUser = req.authUser;
       const tenderId = req.params.id;
       const { companyAssigned, quotation: quotationPayloads } = req.body;
-
       if (
         !companyAssigned ||
         !Array.isArray(quotationPayloads) ||
@@ -278,7 +246,6 @@ export default class Controller {
           ) || 0;
 
         for (const q of validatedPayloads) {
-          console.log("qTotal", q);
           const qTotal =
             q.itemRates?.reduce((sum, item) => sum + (item.amount || 0), 0) ||
             0;
