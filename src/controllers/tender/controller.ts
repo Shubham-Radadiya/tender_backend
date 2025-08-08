@@ -422,9 +422,9 @@ export default class Controller {
       if (gmData && tenderData) {
         await sendNotification(
           gmData._id,
-          tenderData._id!,
           NotificationType.TENDER_CREATED,
-          `New tender ${tenderData.name} has been created and assigned to you`
+          `New tender ${tenderData.name} has been created and assigned to you`,
+          tenderData._id!
         );
       }
 
@@ -673,9 +673,9 @@ export default class Controller {
 
       await sendNotification(
         getTMData._id,
-        existingTender._id,
         notificationType,
-        action
+        action,
+        existingTender._id
       );
 
       res.status(200).json(updated);
@@ -776,9 +776,9 @@ export default class Controller {
       const getTMData = await getTM();
       await sendNotification(
         getTMData._id,
-        existingTender._id,
         NotificationType.TENDER_APPROVED,
-        `Tender approved by the group manager and assigned back to you.`
+        `Tender approved by the group manager and assigned back to you.`,
+        existingTender._id
       );
 
       res.status(200).json({
@@ -816,9 +816,9 @@ export default class Controller {
       await updateTender(new Tender(mergedTender));
       await sendNotification(
         tenderDetails.companyAssigned,
-        tenderDetails._id,
         NotificationType.TENDER_APPROVED_BY_TM,
-        `New Tender ${tenderDetails.name} has been created and assigned to you`
+        `New Tender ${tenderDetails.name} has been created and assigned to you`,
+        tenderDetails._id
       );
     } catch (error) {
       console.log("Error in assignTenderToCM", error);
@@ -896,9 +896,9 @@ export default class Controller {
 
       await sendNotification(
         getTMData._id,
-        existingTender._id,
         notificationType,
-        action
+        action,
+        existingTender._id
       );
 
       res.status(200).json(updated);

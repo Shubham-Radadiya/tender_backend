@@ -9,6 +9,7 @@ export const getTenderParty = async () => {
   ]);
 
   const userList = users.map((user) => ({
+    _id: user._id.toString(),
     name: user.firstName,
     email: user.email,
     address: user.address,
@@ -16,6 +17,7 @@ export const getTenderParty = async () => {
   }));
 
   const partyList = parties.map((party) => ({
+    _id: party._id.toString(),
     name: party.name,
     email: party.email,
     address: party.address,

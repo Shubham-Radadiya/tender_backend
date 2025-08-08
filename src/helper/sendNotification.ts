@@ -4,18 +4,16 @@ import { createNotification, Notification } from "../modules/notification";
 
 export const sendNotification = async (
   userId: string | IUser,
-  tenderId: string,
   type: NotificationType,
-  message: string
+  message: string,
+  tenderId?: string
 ) => {
-
   const notification = new Notification({
     userId: userId as string,
-    tenderId,
+    tenderId: tenderId || null,
     type,
     message,
-    isRead: false
+    isRead: false,
   });
   await createNotification(notification);
-
 };
