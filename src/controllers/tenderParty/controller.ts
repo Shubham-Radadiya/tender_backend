@@ -14,6 +14,7 @@ import {
 import { UserRole } from "../../modules/user/schema";
 import { sendNotification } from "../../helper/sendNotification";
 import { NotificationType } from "../../modules/notification/schema";
+import { getUser } from "../../modules/user";
 
 export default class Controller {
   private readonly createTenderPartySchema = Joi.object({
@@ -66,7 +67,6 @@ export default class Controller {
     try {
       const payload = req.body;
       const user = req.authUser;
-      console.log("user", user);
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -100,8 +100,9 @@ export default class Controller {
       const newParty = await createTenderParty(
         new TenderParty({ ...payloadValue })
       );
+      const adminDetails = await getUser(UserRole.ADMIN);
       await sendNotification(
-        user._id.toString(),
+        adminDetails?.[0]._id.toString(),
         NotificationType.PARTY_CREATED,
         `Create this email ${newParty.email || ""} Company`
       );
