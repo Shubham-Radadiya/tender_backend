@@ -35,7 +35,6 @@ const tender = new Schema<ITender>(
     nameOfWork: { type: String },
     providedBy: { type: String },
     isNoticeGenerated: { type: Boolean, default: false },
-    unit: { type: String, required: true },
     tenderNotice: [
       {
         fileName: { type: String },
@@ -51,7 +50,7 @@ const tender = new Schema<ITender>(
       {
         description: { type: String },
         quantity: { type: Number },
-        unit: { type: String },
+        unit: { type: Schema.Types.ObjectId, ref: "unit" },
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "user" }, // Tender Manager

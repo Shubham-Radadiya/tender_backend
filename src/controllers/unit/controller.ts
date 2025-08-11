@@ -74,7 +74,7 @@ export default class Controller {
 
       if (
         user.role !== UserRole.ADMIN &&
-        user.role !== UserRole.COMPANY_MANAGER
+        user.role !== UserRole.TENDER_MANAGER
       ) {
         res.status(422).json({ message: "Unauthorize Request." });
         return;
@@ -121,7 +121,7 @@ export default class Controller {
 
       if (
         user.role !== UserRole.ADMIN &&
-        user.role !== UserRole.COMPANY_MANAGER
+        user.role !== UserRole.TENDER_MANAGER
       ) {
         res.status(422).json({ message: "Unauthorize Request." });
         return;
@@ -151,7 +151,7 @@ export default class Controller {
       const user = req.authUser;
       if (
         user.role !== UserRole.ADMIN &&
-        user.role !== UserRole.COMPANY_MANAGER
+        user.role !== UserRole.TENDER_MANAGER
       ) {
         res.status(422).json({ message: "Unauthorize Request." });
         return;

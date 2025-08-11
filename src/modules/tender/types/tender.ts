@@ -18,7 +18,6 @@ export interface ITender {
   department: string | IDepartment;
   nameOfWork: string;
   providedBy: string;
-  unit: string;
   tenderNotice: {
     fileName: string;
     days: number;
@@ -61,7 +60,6 @@ export class Tender implements ITender {
   department: string | IDepartment;
   nameOfWork: string;
   providedBy: string;
-  unit: string;
   tenderNotice: {
     fileName: string;
     days: number;
@@ -98,7 +96,6 @@ export class Tender implements ITender {
     this.tenderNo = input.tenderNo;
     this.tenderType = input.tenderType;
     this.name = input.name;
-    this.unit = input.unit;
     this.isNoticeGenerated = input.isNoticeGenerated ?? false;
     this.createdDate = input.createdDate;
     this.lastDate = input.lastDate;

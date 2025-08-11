@@ -34,7 +34,6 @@ export default class Controller {
     isNoticeGenerated: Joi.boolean().default(false),
     nameOfWork: Joi.string().required(),
     providedBy: Joi.string().required(),
-    unit: Joi.string().required(),
     status: Joi.string()
       .valid(...Object.values(TenderStatus))
       .default(TenderStatus.SELECT_STATUS),
@@ -99,7 +98,6 @@ export default class Controller {
     department: Joi.string(),
     nameOfWork: Joi.string(),
     providedBy: Joi.string(),
-    unit: Joi.string(),
     items: Joi.array().items(
       Joi.object({
         description: Joi.string().required(),
