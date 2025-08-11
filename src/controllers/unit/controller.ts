@@ -11,7 +11,6 @@ import {
   Unit,
   updateUnit,
 } from "../../modules/unit";
-import { UserRole } from "../../modules/user/schema";
 
 export default class Controller {
   private readonly createUnitSchema = Joi.object({
@@ -49,7 +48,6 @@ export default class Controller {
   protected readonly createUnit = async (req: Request, res: Response) => {
     try {
       const payload = req.body;
-      const user = req.authUser;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -72,14 +70,6 @@ export default class Controller {
         return;
       }
 
-      if (
-        user.role !== UserRole.ADMIN &&
-        user.role !== UserRole.TENDER_MANAGER
-      ) {
-        res.status(422).json({ message: "Unauthorize Request." });
-        return;
-      }
-
       const newUnit = await createUnit(new Unit({ ...payloadValue }));
       res.status(201).json(newUnit);
       return;
@@ -95,7 +85,6 @@ export default class Controller {
   protected readonly updateUnit = async (req: Request, res: Response) => {
     try {
       const unitId = req.params.id;
-      const user = req.authUser;
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
@@ -116,14 +105,6 @@ export default class Controller {
           }
         });
       if (!payloadValue) {
-        return;
-      }
-
-      if (
-        user.role !== UserRole.ADMIN &&
-        user.role !== UserRole.TENDER_MANAGER
-      ) {
-        res.status(422).json({ message: "Unauthorize Request." });
         return;
       }
 
@@ -148,15 +129,6 @@ export default class Controller {
   protected readonly deleteUnitById = async (req: Request, res: Response) => {
     try {
       const unitId = req.params.id;
-      const user = req.authUser;
-      if (
-        user.role !== UserRole.ADMIN &&
-        user.role !== UserRole.TENDER_MANAGER
-      ) {
-        res.status(422).json({ message: "Unauthorize Request." });
-        return;
-      }
-
       const existingUnit = await getUnitById(unitId);
       if (!existingUnit) {
         res.status(404).json({ message: "Unit not found" });
