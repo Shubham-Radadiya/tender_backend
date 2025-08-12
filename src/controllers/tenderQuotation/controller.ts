@@ -166,6 +166,9 @@ export default class Controller {
           new TenderQuotation({ ...q })
         );
         const populated = await getPopulatedTenderQuotationById(created._id);
+        if (populated?.quotationId) {
+          delete populated.quotationId;
+        }
         createdQuotations.push(populated);
       }
 
