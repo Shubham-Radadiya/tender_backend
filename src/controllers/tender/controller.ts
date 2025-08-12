@@ -760,7 +760,7 @@ export default class Controller {
       const updatedTender = await updateTender(
         new Tender({
           ...existingTender,
-          status: TenderStatus.TENDER_RECEIPT_PENDING,
+          status: TenderStatus.TM_PENDING,
           history: [
             ...(existingTender.history || []),
             {
