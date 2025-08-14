@@ -31,6 +31,7 @@ export interface ITender {
     description: string;
     quantity: number;
     unit: string;
+    parItemRate?: number;
   }[];
   createdBy: string | IUser;
   status: TenderStatus;
@@ -73,6 +74,7 @@ export class Tender implements ITender {
     description: string;
     quantity: number;
     unit: string;
+    parItemRate?: number;
   }[];
   createdBy: string | IUser;
   status: TenderStatus;

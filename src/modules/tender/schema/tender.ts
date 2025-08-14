@@ -51,6 +51,7 @@ const tender = new Schema<ITender>(
         description: { type: String },
         quantity: { type: Number },
         unit: { type: Schema.Types.ObjectId, ref: "unit" },
+        parItemRate: { type: Number, default: 0 },
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "user" }, // Tender Manager
