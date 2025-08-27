@@ -104,7 +104,7 @@ export default class Controller {
       await sendNotification(
         adminDetails?.[0]._id.toString(),
         NotificationType.PARTY_CREATED,
-        `Create this email ${newParty.email || ""} Company`
+        `Tender Manager created this party ${newParty.email || ""}`
       );
 
       res.status(201).json(newParty);

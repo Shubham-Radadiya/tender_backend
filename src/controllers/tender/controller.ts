@@ -18,10 +18,12 @@ import { TenderModel, TenderStatus } from "../../modules/tender/schema";
 import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
 import { NotificationType } from "../../modules/notification/schema/notification";
 import { sendNotification } from "../../helper/sendNotification";
-import { getGM, getTM, getUserById } from "../../modules/user";
+import { getGM, getTM, getUser, getUserById } from "../../modules/user";
 import { UserModel, UserRole } from "../../modules/user/schema";
 import { updateNotification } from "../../modules/notification";
 import { TenderPartyModel } from "../../modules/tenderParty/schema";
+import { getTenderPartyById } from "../../modules/tenderParty";
+import { sendEmail } from "../../helper/sendEmail";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -284,6 +286,41 @@ export default class Controller {
           ],
         })
       );
+
+      if (
+        Array.isArray(payloadValue.partyData) &&
+        payloadValue.partyData.length > 0
+      ) {
+        for (const party of payloadValue.partyData) {
+          if (party.type === "party") {
+            const partyDetails = await getTenderPartyById(party.id);
+            if (partyDetails) {
+              const adminDetails = await getUser(UserRole.ADMIN);
+              if (adminDetails) {
+                await sendNotification(
+                  adminDetails?.[0]._id.toString(),
+                  NotificationType.PARTY_NEEDS_USER,
+                  `Party ${partyDetails.email} has been added to tender ${newTender.name}. Please create a user for them.`
+                );
+              }
+
+              await sendEmail({
+                to: partyDetails.email,
+                subject: "You have been added to a Tender",
+                text: `Dear ${partyDetails.name || "Party"}, 
+          
+          You have been added as a party to Tender "${newTender.name}". 
+          Please contact the Admin (${
+            adminDetails?.[0]?.email
+          }) to create your user account. 
+
+          Regards,
+          Tender System`,
+              });
+            }
+          }
+        }
+      }
 
       // const gmData = await getGM();
       // Send notification to GM
