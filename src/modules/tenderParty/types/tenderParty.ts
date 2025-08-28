@@ -6,6 +6,7 @@ export interface ITenderParty {
   name: string;
   address?: string;
   email?: string;
+  type?: "party" | "user";
 }
 
 export interface IPartyOrUser {
@@ -18,12 +19,14 @@ export class TenderParty implements ITenderParty {
   name: string;
   email: string;
   address?: string;
+  type?: "party" | "user";
 
   constructor(input: ITenderParty) {
     this._id = input._id || new Types.ObjectId().toString();
     this.name = input.name;
     this.email = input.email;
     this.address = input.address;
+    this.type = input.type || "party";
   }
 
   toJSON(): TenderParty {

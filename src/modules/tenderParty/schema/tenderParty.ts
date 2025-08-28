@@ -12,6 +12,11 @@ const tenderParty = new Schema<ITenderParty>(
     address: {
       type: String,
     },
+    type: {
+      type: String,
+      enum: ["party", "user"],
+      default: "party",
+    },
     // createdBy: { type: Schema.Types.ObjectId, ref: "user" },
   },
   {

@@ -547,32 +547,73 @@ export default class Controller {
 
       const updated = await updateTender(new Tender(mergedTender));
 
-      // Send notification to TM based on status
-      let notificationType: NotificationType;
-      let message: string;
+      if (payloadValue.partyData && payloadValue.partyData.length > 0) {
+        for (const party of payloadValue.partyData) {
+          if (party.type === "party") {
+            const partyUser = await getTenderPartyById(party.id);
+            if (!partyUser) continue;
 
-      switch (payloadValue.status) {
-        case TenderStatus.GM_ACCEPTED:
-          notificationType = NotificationType.TENDER_ACCEPTED;
-          message = `Tender "${existingTender.name}" has been accepted by GM`;
-          break;
-        case TenderStatus.GM_DECLINED:
-          notificationType = NotificationType.TENDER_DECLINED;
-          message = `Tender "${existingTender.name}" has been declined by GM`;
-          break;
-        case TenderStatus.GM_APPROVED:
-          notificationType = NotificationType.TENDER_APPROVED;
-          message = `Tender "${existingTender.name}" has been approved by GM`;
-          break;
-        default:
-          res.status(200).json(updated);
-          return;
+            // check if already exists in tender's partyData
+            const alreadyExists = existingTender.partyData?.some(
+              (p) =>
+                p.id.toString() === party.id.toString() && p.type === "party"
+            );
+
+            if (!alreadyExists) {
+              const adminDetails = await getUser(UserRole.ADMIN);
+              if (adminDetails) {
+                await sendNotification(
+                  adminDetails?.[0]._id.toString(),
+                  NotificationType.PARTY_NEEDS_USER,
+                  `Party ${partyUser.email} has been added to tender ${updated.name}. Please create a user for them.`
+                );
+
+                // 2. Send Email
+                await sendEmail({
+                  to: partyUser.email,
+                  subject: "You have been added to a Tender",
+                  text: `Dear ${partyUser.name || "Party"}, 
+          
+          You have been added as a party to Tender "${updated.name}". 
+          Please contact the Admin (${
+            adminDetails?.[0]?.email
+          }) to create your user account. 
+
+          Regards,
+          Tender System`,
+                });
+              }
+            }
+          }
+        }
+
+        // Send notification to TM based on status
+        let notificationType: NotificationType;
+        let message: string;
+
+        switch (payloadValue.status) {
+          case TenderStatus.GM_ACCEPTED:
+            notificationType = NotificationType.TENDER_ACCEPTED;
+            message = `Tender "${existingTender.name}" has been accepted by GM`;
+            break;
+          case TenderStatus.GM_DECLINED:
+            notificationType = NotificationType.TENDER_DECLINED;
+            message = `Tender "${existingTender.name}" has been declined by GM`;
+            break;
+          case TenderStatus.GM_APPROVED:
+            notificationType = NotificationType.TENDER_APPROVED;
+            message = `Tender "${existingTender.name}" has been approved by GM`;
+            break;
+          default:
+            res.status(200).json(updated);
+            return;
+        }
+
+        // await sendNotification(tmId, existingTender._id!, notificationType, message);
+
+        res.status(200).json(updated);
+        return;
       }
-
-      // await sendNotification(tmId, existingTender._id!, notificationType, message);
-
-      res.status(200).json(updated);
-      return;
     } catch (error) {
       console.log("Error in updateTender", error);
       res.status(500).json({ message: error.message });
