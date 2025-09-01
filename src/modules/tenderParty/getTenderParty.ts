@@ -9,7 +9,7 @@ export const getTenderParty = async () => {
       { firstName: 1, email: 1, address: 1 }
     ).lean(),
     TenderPartyModel.find(
-      {},
+      { type: "party" },
       { name: 1, email: 1, address: 1, type: 1 }
     ).lean(),
   ]);
