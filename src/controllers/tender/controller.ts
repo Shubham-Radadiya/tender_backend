@@ -106,6 +106,7 @@ export default class Controller {
         description: Joi.string().required(),
         quantity: Joi.number().required(),
         unit: Joi.string().required(),
+        parItemRate: Joi.number(),
       })
     ),
     partyData: Joi.array(),
