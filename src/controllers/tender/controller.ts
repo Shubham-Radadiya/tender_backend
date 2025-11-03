@@ -49,7 +49,6 @@ export default class Controller {
         })
       )
       .required(),
-    partyData: Joi.array(),
   });
 
   private readonly addTenderNoticeSchema = Joi.object({
@@ -91,6 +90,14 @@ export default class Controller {
     tenderId: Joi.string().required(),
     noticeIndex: Joi.number().required(),
     days: Joi.number().required(),
+    partyData: Joi.array(),
+  });
+
+  private readonly uploadNoticeSchema = Joi.object({
+    tenderId: Joi.string().required(),
+    tender_notice_number: Joi.string().required(),
+    tender_notice_date: Joi.date().required(),
+    due_date: Joi.date().required(),
   });
 
   private readonly updateTenderSchema = Joi.object({
@@ -288,41 +295,6 @@ export default class Controller {
         })
       );
 
-      if (
-        Array.isArray(payloadValue.partyData) &&
-        payloadValue.partyData.length > 0
-      ) {
-        for (const party of payloadValue.partyData) {
-          if (party.type === "party") {
-            const partyDetails = await getTenderPartyById(party.id);
-            if (partyDetails) {
-              const adminDetails = await getUser(UserRole.ADMIN);
-              if (adminDetails) {
-                await sendNotification(
-                  adminDetails?.[0]._id.toString(),
-                  NotificationType.PARTY_NEEDS_USER,
-                  `Party ${partyDetails.email} has been added to tender ${newTender.name}. Please create a user for them.`
-                );
-              }
-
-              await sendEmail({
-                to: partyDetails.email,
-                subject: "You have been added to a Tender",
-                text: `Dear ${partyDetails.name || "Party"}, 
-          
-          You have been added as a party to Tender "${newTender.name}". 
-          Please contact the Admin (${
-            adminDetails?.[0]?.email
-          }) to create your user account. 
-
-          Regards,
-          Tender System`,
-              });
-            }
-          }
-        }
-      }
-
       // const gmData = await getGM();
       // Send notification to GM
       // await sendNotification(
@@ -445,15 +417,71 @@ export default class Controller {
           message: "You do not have permission to update days.",
         });
       }
+      const existingTender = await getTenderById(payloadValue.tenderId);
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
 
-      const updatedTender = await updateTenderById(payloadValue.tenderId, {
+      if (existingTender?.status !== TenderStatus.EXECUTIVE_ENGINEER) {
+        return res.status(403).json({
+          message: "Tender status is not a Executive Engineer.",
+        });
+      }
+
+      const updateQuery: any = {
         $set: {
           [`tenderNotice.${payloadValue.noticeIndex}.days`]: payloadValue.days,
         },
-      });
+      };
 
-      if (!updatedTender) {
-        return res.status(404).json({ message: "Tender not found" });
+      if (
+        Array.isArray(payloadValue.partyData) &&
+        payloadValue.partyData.length > 0
+      ) {
+        updateQuery.$push = {
+          partyData: { $each: payloadValue.partyData },
+        };
+      }
+
+      const updatedTender = await updateTenderById(
+        payloadValue.tenderId,
+        updateQuery
+      );
+
+      if (
+        Array.isArray(payloadValue.partyData) &&
+        payloadValue.partyData.length > 0
+      ) {
+        for (const party of payloadValue.partyData) {
+          if (party.type === "party") {
+            const partyDetails = await getTenderPartyById(party.id);
+            if (partyDetails) {
+              const adminDetails = await getUser(UserRole.ADMIN);
+              if (adminDetails) {
+                await sendNotification(
+                  adminDetails?.[0]._id.toString(),
+                  NotificationType.PARTY_NEEDS_USER,
+                  `Party ${partyDetails.email} has been added to tender ${updatedTender.name}. Please create a user for them.`
+                );
+              }
+
+              await sendEmail({
+                to: partyDetails.email,
+                subject: "You have been added to a Tender",
+                text: `Dear ${partyDetails.name || "Party"},
+
+          You have been added as a party to Tender "${updatedTender.name}".
+          Please contact the Admin (${
+            adminDetails?.[0]?.email
+          }) to create your user account.
+
+          Regards,
+          Tender System`,
+              });
+            }
+          }
+        }
       }
 
       const gmData = await getGM();
@@ -473,6 +501,66 @@ export default class Controller {
       });
     } catch (error) {
       console.log("Error in addTenderNoticeDays", error);
+      res.status(400).json({ error: error?.message });
+    }
+  };
+
+  protected readonly uploadNotice = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const user = req.authUser;
+      const payload = req.body;
+
+      if (!payload) {
+        return res.status(422).json({ message: "Invalid request body" });
+      }
+
+      const payloadValue = await this.uploadNoticeSchema
+        .validateAsync(payload)
+        .then((v) => v)
+        .catch((e) => {
+          console.log("Validation error:", e);
+          return res.status(422).json({ message: e.message });
+        });
+
+      if (!payloadValue) return;
+
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER
+      ) {
+        return res.status(403).json({
+          message: "You do not have permission to upload a notice.",
+        });
+      }
+
+      const existingTender = await getTenderById(payloadValue.tenderId);
+      if (!existingTender) {
+        return res.status(404).json({ message: "Tender not found." });
+      }
+
+      if (existingTender.status !== TenderStatus.EXECUTIVE_ENGINEER) {
+        return res.status(403).json({
+          message: "Tender status is not Executive Engineer.",
+        });
+      }
+
+      const updatedTender = await updateTenderById(payloadValue.tenderId, {
+        $set: {
+          tender_notice_number: payloadValue.tender_notice_number,
+          tender_notice_date: payloadValue.tender_notice_date,
+          due_date: payloadValue.due_date,
+        },
+      });
+
+      res.status(200).json({
+        message: "Tender notice uploaded successfully.",
+        data: updatedTender,
+      });
+    } catch (error) {
+      console.log("Error in uploadNotice:", error);
       res.status(400).json({ error: error?.message });
     }
   };

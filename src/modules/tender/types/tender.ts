@@ -13,6 +13,9 @@ export interface ITender {
   name: string;
   createdDate: Date;
   isNoticeGenerated: boolean;
+  tender_notice_number: String;
+  tender_notice_date: Date;
+  due_date: Date;
   lastDate: Date;
   category: string | ICategory;
   department: string | IDepartment;
@@ -57,6 +60,9 @@ export class Tender implements ITender {
   createdDate: Date;
   lastDate: Date;
   isNoticeGenerated: boolean;
+  tender_notice_number: String;
+  tender_notice_date: Date;
+  due_date: Date;
   category: string | ICategory;
   department: string | IDepartment;
   nameOfWork: string;

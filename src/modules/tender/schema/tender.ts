@@ -35,6 +35,10 @@ const tender = new Schema<ITender>(
     nameOfWork: { type: String },
     providedBy: { type: String },
     isNoticeGenerated: { type: Boolean, default: false },
+    tender_notice_number: { type: String, default: null },
+    tender_notice_date: { type: Date, default: null },
+    due_date: { type: Date, default: null },
+
     tenderNotice: [
       {
         fileName: { type: String },
