@@ -35,9 +35,6 @@ const tender = new Schema<ITender>(
     nameOfWork: { type: String },
     providedBy: { type: String },
     isNoticeGenerated: { type: Boolean, default: false },
-    tender_notice_number: { type: String, default: null },
-    tender_notice_date: { type: Date, default: null },
-    due_date: { type: Date, default: null },
 
     tenderNotice: [
       {
@@ -48,6 +45,9 @@ const tender = new Schema<ITender>(
         unit: { type: String },
         rate: { type: Number },
         amount: { type: Number },
+        tender_notice_number: { type: String },
+        tender_notice_date: { type: Date },
+        due_date: { type: Date },
       },
     ],
     items: [

@@ -54,6 +54,9 @@ export default class Controller {
   private readonly addTenderNoticeSchema = Joi.object({
     type: Joi.string().valid("manual", "upload").required(),
     tenderId: Joi.string().required(),
+    tender_notice_number: Joi.string().required(),
+    tender_notice_date: Joi.date().required(),
+    due_date: Joi.date().required(),
     fileName: Joi.when("type", {
       is: "upload",
       then: Joi.string().required(),
@@ -355,6 +358,16 @@ export default class Controller {
           message: "You do not have permission to add a tender notice.",
         });
       }
+      const existingTender = await getTenderById(payloadValue.tenderId);
+      if (!existingTender) {
+        return res.status(404).json({ message: "Tender not found." });
+      }
+
+      if (existingTender.status !== TenderStatus.EXECUTIVE_ENGINEER) {
+        return res.status(403).json({
+          message: "Tender status is not Executive Engineer.",
+        });
+      }
 
       const updatedTender = await updateTenderById(payloadValue.tenderId, {
         $push: {
@@ -366,6 +379,9 @@ export default class Controller {
             unit: payloadValue.unit,
             rate: payloadValue.rate,
             amount: payloadValue.amount,
+            tender_notice_number: payloadValue.tender_notice_number,
+            tender_notice_date: payloadValue.tender_notice_date,
+            due_date: payloadValue.due_date,
           },
         },
       });
@@ -501,66 +517,6 @@ export default class Controller {
       });
     } catch (error) {
       console.log("Error in addTenderNoticeDays", error);
-      res.status(400).json({ error: error?.message });
-    }
-  };
-
-  protected readonly uploadNotice = async (
-    req: Request,
-    res: Response
-  ): Promise<any> => {
-    try {
-      const user = req.authUser;
-      const payload = req.body;
-
-      if (!payload) {
-        return res.status(422).json({ message: "Invalid request body" });
-      }
-
-      const payloadValue = await this.uploadNoticeSchema
-        .validateAsync(payload)
-        .then((v) => v)
-        .catch((e) => {
-          console.log("Validation error:", e);
-          return res.status(422).json({ message: e.message });
-        });
-
-      if (!payloadValue) return;
-
-      if (
-        user.role !== UserRole.ADMIN &&
-        user.role !== UserRole.TENDER_MANAGER
-      ) {
-        return res.status(403).json({
-          message: "You do not have permission to upload a notice.",
-        });
-      }
-
-      const existingTender = await getTenderById(payloadValue.tenderId);
-      if (!existingTender) {
-        return res.status(404).json({ message: "Tender not found." });
-      }
-
-      if (existingTender.status !== TenderStatus.EXECUTIVE_ENGINEER) {
-        return res.status(403).json({
-          message: "Tender status is not Executive Engineer.",
-        });
-      }
-
-      const updatedTender = await updateTenderById(payloadValue.tenderId, {
-        $set: {
-          tender_notice_number: payloadValue.tender_notice_number,
-          tender_notice_date: payloadValue.tender_notice_date,
-          due_date: payloadValue.due_date,
-        },
-      });
-
-      res.status(200).json({
-        message: "Tender notice uploaded successfully.",
-        data: updatedTender,
-      });
-    } catch (error) {
-      console.log("Error in uploadNotice:", error);
       res.status(400).json({ error: error?.message });
     }
   };

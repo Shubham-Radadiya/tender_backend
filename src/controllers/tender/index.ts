@@ -14,7 +14,6 @@ export default class Tender extends Controller {
     this.router.get("/forCM", this.getTenderForCM);
     this.router.put("/addNotice", upload.single("file"), this.addTenderNotice);
     this.router.put("/addDays", this.addTenderNoticeDays);
-    this.router.put("/uploadNotice", this.uploadNotice);
     this.router.get("/byStatus", this.getTenderByStatus);
     this.router.get("/", this.getTender);
     this.router.get("/:id", this.getTender);
