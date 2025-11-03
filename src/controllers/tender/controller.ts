@@ -52,41 +52,41 @@ export default class Controller {
   });
 
   private readonly addTenderNoticeSchema = Joi.object({
-    type: Joi.string().valid("manual", "upload").required(),
+    // type: Joi.string().valid("manual", "upload").required(),
     tenderId: Joi.string().required(),
     tender_notice_number: Joi.string().required(),
     tender_notice_date: Joi.date().required(),
     due_date: Joi.date().required(),
-    fileName: Joi.when("type", {
-      is: "upload",
-      then: Joi.string().required(),
-      otherwise: Joi.forbidden(),
-    }),
-    itemName: Joi.when("type", {
-      is: "manual",
-      then: Joi.string().required(),
-      otherwise: Joi.forbidden(),
-    }),
-    quantity: Joi.when("type", {
-      is: "manual",
-      then: Joi.number().required(),
-      otherwise: Joi.forbidden(),
-    }),
-    unit: Joi.when("type", {
-      is: "manual",
-      then: Joi.string().required(),
-      otherwise: Joi.forbidden(),
-    }),
-    rate: Joi.when("type", {
-      is: "manual",
-      then: Joi.number().required(),
-      otherwise: Joi.forbidden(),
-    }),
-    amount: Joi.when("type", {
-      is: "manual",
-      then: Joi.number().required(),
-      otherwise: Joi.forbidden(),
-    }),
+    fileName: Joi.string().required(),
+    // fileName: Joi.when("type", {
+    //   is: "upload",
+    //   then: Joi.string().required(),
+    // }),
+    // itemName: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.string().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // quantity: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.number().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // unit: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.string().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // rate: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.number().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // amount: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.number().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
   });
 
   private readonly addTenderNoticeDaysSchema = Joi.object({
@@ -331,7 +331,11 @@ export default class Controller {
         return res.status(422).json({ message: "Invalid request body" });
       }
 
-      if (payload.type === "upload" && req.file) {
+      // if (payload.type === "upload" && req.file) {
+      //   payload.fileName = req.file.filename;
+      // }
+
+      if (req.file) {
         payload.fileName = req.file.filename;
       }
 
@@ -374,11 +378,11 @@ export default class Controller {
           tenderNotice: {
             fileName: payloadValue.fileName,
             days: payloadValue.days,
-            itemName: payloadValue.itemName,
-            quantity: payloadValue.quantity,
-            unit: payloadValue.unit,
-            rate: payloadValue.rate,
-            amount: payloadValue.amount,
+            // itemName: payloadValue.itemName,
+            // quantity: payloadValue.quantity,
+            // unit: payloadValue.unit,
+            // rate: payloadValue.rate,
+            // amount: payloadValue.amount,
             tender_notice_number: payloadValue.tender_notice_number,
             tender_notice_date: payloadValue.tender_notice_date,
             due_date: payloadValue.due_date,
@@ -392,7 +396,7 @@ export default class Controller {
 
       res.status(201).json({
         message: "Tender notice added successfully",
-        data: "updatedTender",
+        data: updatedTender,
       });
     } catch (error) {
       console.log("Error in addTenderNotice", error);
