@@ -452,6 +452,7 @@ export default class Controller {
       const updateQuery: any = {
         $set: {
           [`tenderNotice.${payloadValue.noticeIndex}.days`]: payloadValue.days,
+          isNoticeGenerated: true,
         },
       };
 
