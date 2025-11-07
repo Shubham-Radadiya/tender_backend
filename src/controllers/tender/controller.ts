@@ -553,6 +553,16 @@ export default class Controller {
       }
       existingTender.status = status;
 
+      if (status == TenderStatus.GM_PENDING) {
+        const gmData = await getGM();
+        await sendNotification(
+          gmData._id,
+          NotificationType.TENDER_PENDING_BY_GM,
+          `Tender ${existingTender.name} is pending for the GM user.`,
+          existingTender._id
+        );
+      }
+
       const updatedTender = await updateTender(new Tender(existingTender));
       res.status(200).json({
         message: "Tender status updated successfully.",
