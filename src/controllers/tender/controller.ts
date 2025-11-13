@@ -91,7 +91,6 @@ export default class Controller {
 
   private readonly addTenderNoticeDaysSchema = Joi.object({
     tenderId: Joi.string().required(),
-    noticeIndex: Joi.number().required(),
     days: Joi.number().required(),
     partyData: Joi.array(),
   });
@@ -374,7 +373,7 @@ export default class Controller {
       }
 
       const updatedTender = await updateTenderById(payloadValue.tenderId, {
-        $push: {
+        $set: {
           tenderNotice: {
             fileName: payloadValue.fileName,
             days: payloadValue.days,
@@ -451,7 +450,7 @@ export default class Controller {
 
       const updateQuery: any = {
         $set: {
-          [`tenderNotice.${payloadValue.noticeIndex}.days`]: payloadValue.days,
+          [`tenderNotice.days`]: payloadValue.days,
           isNoticeGenerated: true,
         },
       };
@@ -460,9 +459,18 @@ export default class Controller {
         Array.isArray(payloadValue.partyData) &&
         payloadValue.partyData.length > 0
       ) {
-        updateQuery.$push = {
-          partyData: { $each: payloadValue.partyData },
-        };
+        const existingPartyIds =
+          existingTender?.partyData?.map((p: any) => p.id?.toString()) || [];
+
+        const newParties = payloadValue.partyData.filter(
+          (p: any) => !existingPartyIds.includes(p.id?.toString())
+        );
+
+        if (newParties.length > 0) {
+          updateQuery.$push = {
+            partyData: { $each: newParties },
+          };
+        }
       }
 
       const updatedTender = await updateTenderById(

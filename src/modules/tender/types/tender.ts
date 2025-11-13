@@ -29,7 +29,7 @@ export interface ITender {
     tender_notice_date: Date;
     due_date: Date;
     amount: number;
-  }[];
+  };
   items: {
     description: string;
     quantity: number;
@@ -75,7 +75,7 @@ export class Tender implements ITender {
     tender_notice_date: Date;
     due_date: Date;
     amount: number;
-  }[];
+  };
   items: {
     description: string;
     quantity: number;
