@@ -45,6 +45,14 @@ export interface ITender {
     by: string | IUser;
     date: Date;
   }[];
+  personalDetails: {
+    refNo: string;
+    departmentName: string;
+    location: string;
+    panNo: string;
+    gstNo: string;
+    termsAndConditions: string[];
+  }[];
   declineReason: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -81,6 +89,14 @@ export class Tender implements ITender {
     quantity: number;
     unit: string;
     parItemRate?: number;
+  }[];
+  personalDetails: {
+    refNo: string;
+    departmentName: string;
+    location: string;
+    panNo: string;
+    gstNo: string;
+    termsAndConditions: string[];
   }[];
   createdBy: string | IUser;
   status: TenderStatus;
@@ -124,6 +140,7 @@ export class Tender implements ITender {
           date: h.date,
         }))
       : [];
+    this.personalDetails = input.personalDetails || [];
     this.declineReason = input.declineReason;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;

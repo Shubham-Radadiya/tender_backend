@@ -14,6 +14,7 @@ export enum TenderStatus {
   SELECT_STATUS = "SELECT_STATUS",
   JUNIOR_ENGINEER = "JUNIOR_ENGINEER",
   ASSOCIATIVE_ENGINEER = "ASSOCIATIVE_ENGINEER",
+  DIVISIONAL_ACCOUNTANT = "DIVISIONAL ACCOUNTANT",
   ASSISTANT_ENGINEER = "ASSISTANT_ENGINEER",
   EXECUTIVE_ENGINEER = "EXECUTIVE_ENGINEER",
   OTHER = "OTHER",
@@ -73,6 +74,17 @@ const tender = new Schema<ITender>(
         date: Date,
       },
     ],
+    personalDetails: [
+      {
+        refNo: { type: String },
+        departmentName: { type: String },
+        location: { type: String },
+        panNo: { type: String },
+        gstNo: { type: String },
+        termsAndConditions: [{ type: String }],
+      },
+    ],
+
     partyData: [
       {
         id: { type: Schema.Types.ObjectId, required: true },
