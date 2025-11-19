@@ -19,6 +19,7 @@ import Party from "./controllers/party";
 import PartyWork from "./controllers/partyWork";
 import TenderParty from "./controllers/tenderParty";
 import Unit from "./controllers/unit";
+import WorkOrder from "./controllers/workOrder";
 
 export default class App {
   public static instance: express.Application;
@@ -83,6 +84,11 @@ export default class App {
       "/tenderParty",
       validateAuthIdToken,
       new TenderParty().router
+    );
+    this.instance.use(
+      "/workOrder",
+      validateAuthIdToken,
+      new WorkOrder().router
     );
     this.instance.use("/unit", validateAuthIdToken, new Unit().router);
     this.instance.use(
