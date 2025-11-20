@@ -12,6 +12,7 @@ import {
   updateWorkOrder,
   WorkOrder,
 } from "../../modules/workOrder";
+import { WorkOrderModel } from "../../modules/workOrder/schema";
 
 export default class Controller {
   private readonly createWorkOrderSchema = Joi.object({
@@ -107,6 +108,30 @@ export default class Controller {
         message: "WorkOrder Listed",
         data,
       });
+      return;
+    } catch (error) {
+      console.log("Error in getWorkOrder", error);
+      res.status(400).json({
+        error: error?.message,
+      });
+      return;
+    }
+  };
+
+  protected readonly getWorkOrderByTenderId = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const tenderId = req.params.tenderId;
+      console.log("tenderId", tenderId);
+
+      if (!tenderId) {
+        res.status(422).json({ message: "Invalid request body" });
+        return;
+      }
+      const workOrder = await WorkOrderModel.findOne({ tenderId });
+      res.status(200).json({ message: "WorkOrder Details", workOrder });
       return;
     } catch (error) {
       console.log("Error in getWorkOrder", error);

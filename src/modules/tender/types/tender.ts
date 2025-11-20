@@ -38,6 +38,8 @@ export interface ITender {
   }[];
   createdBy: string | IUser;
   status: TenderStatus;
+  workOrderStatus: boolean;
+  juniorEngineerCount: number;
   // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
   history?: {
@@ -100,6 +102,8 @@ export class Tender implements ITender {
   }[];
   createdBy: string | IUser;
   status: TenderStatus;
+  juniorEngineerCount: number;
+  workOrderStatus: boolean;
   // assignedTo?: string | IUser;
   companyAssigned?: string | IUser;
   history?: {
@@ -131,6 +135,8 @@ export class Tender implements ITender {
     this.items = input.items;
     this.createdBy = input.createdBy;
     this.status = input.status;
+    this.workOrderStatus = input.workOrderStatus || false;
+    this.juniorEngineerCount = input.juniorEngineerCount || 0;
     // this.assignedTo = input.assignedTo;
     this.companyAssigned = input.companyAssigned;
     this.history = input.history

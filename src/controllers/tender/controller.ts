@@ -583,6 +583,17 @@ export default class Controller {
         );
       }
 
+      if (
+        status == TenderStatus.JUNIOR_ENGINEER &&
+        !existingTender.workOrderStatus
+      ) {
+        if (existingTender.juniorEngineerCount < 1) {
+          existingTender.juniorEngineerCount += 1;
+        } else {
+          existingTender.workOrderStatus = true;
+        }
+      }
+
       const updatedTender = await updateTender(new Tender(existingTender));
       res.status(200).json({
         message: "Tender status updated successfully.",

@@ -162,15 +162,19 @@ export default class Controller {
 
       if (totalBillAmount + payloadValue.amount > totalAmount) {
         res.status(422).json({
-          message: `The amount is too large you can not add more then ${totalAmount - totalBillAmount
-            }.`,
+          message: `The amount is too large you can not add more then ${
+            totalAmount - totalBillAmount
+          }.`,
         });
         return;
       }
-      const invoiceNumber = await generateInvoiceNumber(authUser, payloadValue?.tenderId.toString());
+      const invoiceNumber = await generateInvoiceNumber(
+        authUser,
+        payloadValue?.tenderId.toString()
+      );
 
       const newBill = await createBill(
-        new Bill({ ...payloadValue, status: BillStatus.SAVED, invoiceNumber, })
+        new Bill({ ...payloadValue, status: BillStatus.SAVED, invoiceNumber })
       );
       res.status(201).json(newBill);
       return;
