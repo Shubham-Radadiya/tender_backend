@@ -14,7 +14,7 @@ const workOrder = new Schema<IWorkOrder>(
       type: Number,
     },
     unit: {
-      type: Number,
+      type: String,
     },
     rate: {
       type: Number,

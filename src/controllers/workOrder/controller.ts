@@ -35,7 +35,7 @@ export default class Controller {
       otherwise: Joi.required(),
     }),
 
-    unit: Joi.number().when("fileName", {
+    unit: Joi.string().when("fileName", {
       is: Joi.exist(),
       then: Joi.optional(),
       otherwise: Joi.required(),

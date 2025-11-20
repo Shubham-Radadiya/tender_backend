@@ -10,6 +10,7 @@ export enum NotificationType {
   TENDER_APPROVED_BY_TM = "TENDER_APPROVED_BY_TM",
   PARTY_CREATED = "PARTY_CREATED",
   PARTY_NEEDS_USER = "PARTY_NEEDS_USER",
+  payment_COMPLETED = "payment_COMPLETED",
 }
 
 const notification = new Schema<INotification>(

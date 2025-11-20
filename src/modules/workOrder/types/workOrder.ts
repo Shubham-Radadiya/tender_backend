@@ -8,7 +8,7 @@ export interface IWorkOrder {
   title?: string;
   description?: string;
   quantity?: number;
-  unit?: number;
+  unit?: string;
   rate?: number;
   fileName?: string;
 }
@@ -19,7 +19,7 @@ export class WorkOrder implements IWorkOrder {
   title?: string;
   description?: string;
   quantity?: number;
-  unit?: number;
+  unit?: string;
   rate?: number;
   fileName?: string;
 
