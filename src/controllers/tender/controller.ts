@@ -981,7 +981,6 @@ export default class Controller {
       }
       const mergedTender = {
         ...tenderDetails,
-        status: TenderStatus.CM_PENDING,
       };
       await updateTender(new Tender(mergedTender));
       await sendNotification(
