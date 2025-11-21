@@ -67,6 +67,18 @@ export default class Controller {
       .optional(),
   });
 
+  private readonly updatePersonalDetailsSchema = Joi.object({
+    quotationId: Joi.string().required(),
+    personalDetails: Joi.object({
+      refNo: Joi.string().optional(),
+      departmentName: Joi.string().optional(),
+      location: Joi.string().optional(),
+      panNo: Joi.string().optional(),
+      gstNo: Joi.string().optional(),
+      termsAndConditions: Joi.array().items(Joi.string()).optional(),
+    }).optional(),
+  });
+
   protected readonly createTenderQuotation = async (
     req: Request,
     res: Response
@@ -344,6 +356,71 @@ export default class Controller {
       console.log("Error in deleteTenderQuotation", error);
       res.status(500).json({ message: error.message });
       return;
+    }
+  };
+  protected readonly updatePersonalDetails = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      console.log("🚀 ~ Controller ~ req.body:", req.body);
+
+      const payload = await this.updatePersonalDetailsSchema
+        .validateAsync(req.body)
+        .catch((e) => {
+          return res
+            .status(422)
+            .json({ message: e.message, details: e.details });
+        });
+
+      if (!payload) return;
+
+      const quotationId = payload.quotationId;
+      const existingQuotation = await getTenderQuotationById(quotationId);
+
+      if (!existingQuotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      existingQuotation.personalDetails = {
+        ...existingQuotation.personalDetails,
+        ...payload.personalDetails,
+      };
+
+      const updated = await updateTenderQuotation(
+        new TenderQuotation(existingQuotation)
+      );
+      console.log("updated", updated);
+
+      return res.status(200).json({
+        message: "Personal details updated successfully",
+        data: updated,
+      });
+    } catch (error) {
+      console.error("Error updating personal details:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  };
+
+  protected readonly getQuotationPersonalDetails = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const quotationId = req.params.id;
+
+      const quotation = await getTenderQuotationById(quotationId);
+
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      return res.status(200).json({
+        message: "Personal details fetched successfully",
+        personalDetails: quotation.personalDetails || {},
+      });
+    } catch (error) {
+      console.error("Error fetching personal details:", error);
+      return res.status(500).json({ message: "Server error" });
     }
   };
 }

@@ -153,18 +153,6 @@ export default class Controller {
     }),
   });
 
-  private readonly updatePersonalDetailsSchema = Joi.object({
-    tenderId: Joi.string().required(),
-    personalDetails: Joi.object({
-      refNo: Joi.string().optional(),
-      departmentName: Joi.string().optional(),
-      location: Joi.string().optional(),
-      panNo: Joi.string().optional(),
-      gstNo: Joi.string().optional(),
-      termsAndConditions: Joi.array().items(Joi.string()).optional(),
-    }).optional(),
-  }).unknown(true);
-
   protected readonly getTender = async (req: Request, res: Response) => {
     try {
       const tenderId = req.params.id;
@@ -1127,51 +1115,6 @@ export default class Controller {
       });
     } catch (error) {
       console.error("Error fetching party data:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  };
-
-  protected readonly updatePersonalDetails = async (
-    req: Request,
-    res: Response
-  ): Promise<any> => {
-    try {
-      console.log("🚀 ~ Controller ~ req.body:", req.body);
-
-      const payload = await this.updatePersonalDetailsSchema
-        .validateAsync(req.body)
-        .catch((e) => {
-          return res
-            .status(422)
-            .json({ message: e.message, details: e.details });
-        });
-
-      if (!payload) return;
-
-      const tenderId = payload.tenderId;
-      const tender = await getTenderById(tenderId);
-      if (!tender) {
-        return res.status(404).json({ message: "Tender not found" });
-      }
-
-      tender.personalDetails = tender.personalDetails || [];
-
-      const updatedPersonalDetails = {
-        ...tender.personalDetails[0],
-        ...payload.personalDetails,
-      };
-
-      tender.personalDetails[0] = updatedPersonalDetails;
-
-      const updated = await updateTender(new Tender(tender));
-      console.log("updated", updated);
-
-      return res.status(200).json({
-        message: "Personal details updated successfully",
-        data: updated,
-      });
-    } catch (error) {
-      console.error("Error updating personal details:", error);
       return res.status(500).json({ message: "Server error" });
     }
   };

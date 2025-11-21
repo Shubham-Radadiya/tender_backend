@@ -56,6 +56,14 @@ const tenderQuotation = new Schema<ITenderQuotation>(
         amount: Number,
       },
     ],
+    personalDetails: {
+      refNo: { type: String },
+      departmentName: { type: String },
+      location: { type: String },
+      panNo: { type: String },
+      gstNo: { type: String },
+      termsAndConditions: [{ type: String }],
+    },
   },
   { timestamps: true }
 );

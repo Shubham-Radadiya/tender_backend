@@ -21,6 +21,14 @@ export interface ITenderQuotation {
   receipt?: string;
   fee?: number;
   itemRates: IItemRate[];
+  personalDetails: {
+    refNo: string;
+    departmentName: string;
+    location: string;
+    panNo: string;
+    gstNo: string;
+    termsAndConditions: string[];
+  };
   createdAt?: Date;
   updatedAt?: Date;
   termsAndConditions?: string;
@@ -39,6 +47,14 @@ export class TenderQuotation implements ITenderQuotation {
   tenderFee: number;
   emd: number;
   itemRates: IItemRate[];
+  personalDetails: {
+    refNo: string;
+    departmentName: string;
+    location: string;
+    panNo: string;
+    gstNo: string;
+    termsAndConditions: string[];
+  };
   date?: Date;
   receipt?: string;
   fee?: number;
@@ -73,6 +89,14 @@ export class TenderQuotation implements ITenderQuotation {
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
     this.termsAndConditions = input.termsAndConditions;
+    this.personalDetails = input.personalDetails || {
+      refNo: "",
+      departmentName: "",
+      location: "",
+      panNo: "",
+      gstNo: "",
+      termsAndConditions: [],
+    };
     this.form = input.form;
     this.to = input.to;
     this.refOne = input.refOne;

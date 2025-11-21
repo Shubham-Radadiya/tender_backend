@@ -76,16 +76,6 @@ const tender = new Schema<ITender>(
         date: Date,
       },
     ],
-    personalDetails: [
-      {
-        refNo: { type: String },
-        departmentName: { type: String },
-        location: { type: String },
-        panNo: { type: String },
-        gstNo: { type: String },
-        termsAndConditions: [{ type: String }],
-      },
-    ],
 
     partyData: [
       {
