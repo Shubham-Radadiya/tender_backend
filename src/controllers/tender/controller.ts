@@ -560,15 +560,15 @@ export default class Controller {
         return res.status(404).json({ message: "Tender not found." });
       }
       existingTender.status = status;
-
       if (
         status == TenderStatus.JUNIOR_ENGINEER &&
         !existingTender.workOrderStatus
       ) {
-        if (existingTender.juniorEngineerCount < 1) {
+        if (existingTender.juniorEngineerCount < 2) {
           existingTender.juniorEngineerCount += 1;
-        } else {
-          existingTender.workOrderStatus = true;
+          if (existingTender.juniorEngineerCount == 2) {
+            existingTender.workOrderStatus = true;
+          }
         }
       }
 
