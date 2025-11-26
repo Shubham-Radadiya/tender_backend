@@ -22,6 +22,9 @@ const workOrder = new Schema<IWorkOrder>(
     fileName: {
       type: String,
     },
+    amount: {
+      type: Number,
+    },
   },
   {
     timestamps: true,

@@ -47,6 +47,12 @@ export default class Controller {
       otherwise: Joi.required(),
     }),
 
+    amount: Joi.number().when("fileName", {
+      is: Joi.exist(),
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+
     fileName: Joi.string().optional().trim(),
 
     createdAt: Joi.date()
