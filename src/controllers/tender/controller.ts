@@ -561,7 +561,7 @@ export default class Controller {
       }
       existingTender.status = status;
       if (
-        status == TenderStatus.JUNIOR_ENGINEER &&
+        status == TenderStatus.EXECUTIVE_ENGINEER &&
         !existingTender.workOrderStatus
       ) {
         if (existingTender.juniorEngineerCount < 2) {

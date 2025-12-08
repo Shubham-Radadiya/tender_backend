@@ -135,7 +135,7 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
-      if (authUser.role !== UserRole.COMPANY_MANAGER) {
+      if (authUser.role !== UserRole.COMPANY_MANAGER && authUser.role !== UserRole.BANK_MANAGER) {
         res.status(422).json({ message: "Not have permission to generate." });
         return;
       }
