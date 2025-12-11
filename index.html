@@ -76,6 +76,8 @@
       logDiv.scrollTop = logDiv.scrollHeight;
     });
 
+    // TENDER EVENTS
+
       socket.on("tender:created", (data) => {
     console.log("New Tender Created:", data);
     alert("New Tender: " + data.name);
