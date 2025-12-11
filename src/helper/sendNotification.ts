@@ -1,6 +1,7 @@
 import { IUser } from "../modules/user"; // Adjust path as needed
 import { NotificationType } from "../modules/notification/schema/notification";
 import { createNotification, Notification } from "../modules/notification";
+import { getIO } from "../socket";
 
 export const sendNotification = async (
   userId: string | IUser,
@@ -15,5 +16,7 @@ export const sendNotification = async (
     message,
     isRead: false,
   });
-  await createNotification(notification);
+  const saved = await createNotification(notification);
+  const io = getIO();
+  io.to(userId as string).emit("notification:receive", saved);
 };

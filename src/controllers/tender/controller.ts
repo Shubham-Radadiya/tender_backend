@@ -24,6 +24,7 @@ import { updateNotification } from "../../modules/notification";
 import { TenderPartyModel } from "../../modules/tenderParty/schema";
 import { getTenderPartyById } from "../../modules/tenderParty";
 import { sendEmail } from "../../helper/sendEmail";
+import { getIO } from "../../socket";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
@@ -296,6 +297,9 @@ export default class Controller {
           ],
         })
       );
+      const io = getIO();
+
+      io.emit("tender:created", newTender);
 
       // const gmData = await getGM();
       // Send notification to GM
@@ -392,6 +396,8 @@ export default class Controller {
       if (!updatedTender) {
         return res.status(404).json({ message: "Tender not found" });
       }
+      const io = getIO();
+      io.emit("tender:addTenderNotice", updatedTender);
 
       res.status(201).json({
         message: "Tender notice added successfully",
@@ -524,6 +530,11 @@ export default class Controller {
         );
       }
 
+      const io = getIO();
+
+      io.emit("tender:addTenderNoticeDays", updatedTender);
+      console.log("updatedTender :", updatedTender);
+
       res.status(200).json({
         message: "Days updated successfully in Tender Notice",
         data: updatedTender,
@@ -573,6 +584,9 @@ export default class Controller {
       }
 
       const updatedTender = await updateTender(new Tender(existingTender));
+      const io = getIO();
+
+      io.emit("tender:updateTenderStatus", updatedTender);
       res.status(200).json({
         message: "Tender status updated successfully.",
         data: updatedTender,
@@ -615,6 +629,10 @@ export default class Controller {
       };
 
       const updated = await updateTender(new Tender(mergedTender));
+
+      const io = getIO();
+
+      io.emit("tender:updated", updated);
 
       if (payloadValue.partyData && payloadValue.partyData.length > 0) {
         for (const party of payloadValue.partyData) {
@@ -736,7 +754,7 @@ export default class Controller {
         history: [
           ...(existingTender.history || []),
           {
-            action: `Tender '${existingTender.name}' assigned to winning company '${companyDetails.firstName} ${companyDetails.lastName}' by Group Manager`,
+            action: `Tender '${existingTender.name}' assigned to winning company '${companyDetails?.firstName} ${companyDetails?.lastName}' by Group Manager`,
             by: req.authUser._id,
             date: new Date(),
           },
@@ -744,6 +762,10 @@ export default class Controller {
       };
 
       const updated = await updateTender(new Tender(mergedTender));
+      const io = getIO();
+
+      io.emit("tender:tendergotTo", updated);
+
       res.status(200).json(updated);
       return;
     } catch (error) {
@@ -826,6 +848,10 @@ export default class Controller {
         existingTender._id
       );
 
+      const io = getIO();
+
+      io.emit("tender:tenderAccepted", updated);
+
       res.status(200).json(updated);
       return;
     } catch (error) {
@@ -845,6 +871,9 @@ export default class Controller {
       }
 
       await deleteTenderById(tenderId);
+      const io = getIO();
+      io.emit("tender:deleteTender", tenderId);
+
       res.status(200).json({ message: "Tender deleted successfully" });
       return;
     } catch (error) {
@@ -928,6 +957,9 @@ export default class Controller {
         `Tender approved by the group manager and assigned back to you.`,
         existingTender._id
       );
+
+      const io = getIO();
+      io.emit("tender:TenderApprove", updatedTender);
 
       res.status(200).json({
         message: "Tender approved by GM successfully and assigned back to TM.",
@@ -1047,6 +1079,8 @@ export default class Controller {
         action,
         existingTender._id
       );
+      const io = getIO();
+      io.emit("tender:tenderAcceptedByCM", updated);
 
       res.status(200).json(updated);
       return;

@@ -11,14 +11,15 @@ import {
 
 export default class Controller {
   private readonly updateNotificationSchema = Joi.object({
-    type: Joi.string().valid(
-      "TENDER_CREATED",
-      "TENDER_ACCEPTED",
-      "TENDER_DECLINED",
-      "TENDER_APPROVED"
-    ).optional()
-  })
-
+    type: Joi.string()
+      .valid(
+        "TENDER_CREATED",
+        "TENDER_ACCEPTED",
+        "TENDER_DECLINED",
+        "TENDER_APPROVED"
+      )
+      .optional(),
+  });
 
   protected readonly getPaginatedNotification = async (
     req: Request,
@@ -60,7 +61,7 @@ export default class Controller {
   ) => {
     try {
       const notificationId = req.params.id;
-      const payload = req.body
+      const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
       }
@@ -88,11 +89,15 @@ export default class Controller {
         res.status(404).json({ message: "Notification not found" });
         return;
       }
-      let updated
+      let updated;
 
       if (payloadValue.type) {
         updated = await updateNotification(
-          new Notification({ ...existingNotification.toObject(), isRead: true, type: payloadValue.type })
+          new Notification({
+            ...existingNotification.toObject(),
+            isRead: true,
+            type: payloadValue.type,
+          })
         );
       } else {
         updated = await updateNotification(

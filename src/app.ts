@@ -39,9 +39,11 @@ export default class App {
     // CORS
     this.instance.use(
       cors({
-        origin: true,
+        origin: (origin, callback) => {
+          callback(null, true);
+        },
         credentials: true,
-        exposedHeaders: "x-auth-token",
+        exposedHeaders: ["x-auth-token"],
       })
     );
 
