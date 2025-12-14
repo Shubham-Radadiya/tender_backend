@@ -1,3 +1,4 @@
+import http from "http";
 import App from "./app";
 import { connectDb } from "./dbConnection";
 import * as dotenv from "dotenv";
@@ -27,15 +28,14 @@ console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
 connectDb()
   .then(async () => {
     try {
-      // Initialize Express app
       const app = App.getInstance();
 
-      // Start the server
       App.listen(serverPort);
 
       console.log("✅ Server started successfully");
       console.log(`🌐 HTTP Server running on http://localhost:${serverPort}`);
       console.log(`🔌 Socket.IO listening on path: /socket.io/`);
+      console.log(`📨 Chat & Notification sockets ready`);
     } catch (error) {
       console.error("❌ Error starting server:", error);
       process.exit(1);

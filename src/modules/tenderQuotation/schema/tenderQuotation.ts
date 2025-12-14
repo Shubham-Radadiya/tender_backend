@@ -20,11 +20,31 @@ const tenderQuotation = new Schema<ITenderQuotation>(
     emd: {
       type: Number,
     },
-    receipts: [
-      {
-        type: String,
-      },
-    ],
+    date: {
+      type: Date,
+    },
+    receipt: {
+      type: String,
+    },
+    fee: {
+      type: Number,
+    },
+
+    termsAndConditions: {
+      type: String,
+    },
+    form: {
+      type: String,
+    },
+    to: {
+      type: String,
+    },
+    refOne: {
+      type: String,
+    },
+    refTwo: {
+      type: String,
+    },
     itemRates: [
       {
         itemId: {
@@ -36,6 +56,14 @@ const tenderQuotation = new Schema<ITenderQuotation>(
         amount: Number,
       },
     ],
+    personalDetails: {
+      refNo: { type: String },
+      departmentName: { type: String },
+      location: { type: String },
+      panNo: { type: String },
+      gstNo: { type: String },
+      termsAndConditions: [{ type: String }],
+    },
   },
   { timestamps: true }
 );

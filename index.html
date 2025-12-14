@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Socket.IO Notification Test</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+    #log {
+      background: #f2f2f2;
+      padding: 15px;
+      height: 300px;
+      overflow-y: auto;
+      border-radius: 5px;
+    }
+    .notify {
+      margin-bottom: 10px;
+      padding: 10px;
+      background: #d9eaff;
+      border-left: 4px solid #007bff;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Socket.IO Notification Demo</h2>
+
+  <label>User ID:</label><br />
+  <input type="text" id="userId" placeholder="Enter userId" style="padding:6px;width:250px" />
+  <button onclick="joinRoom()">Join Notification Room</button>
+
+  <h3>Incoming Notifications:</h3>
+  <div id="log"></div>
+
+  <!-- Socket.IO CDN -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+  <script>
+    // Connect to your backend socket server
+    const socket = io("http://localhost:5000",{
+        auth: {
+          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTM2ZGNmNDQwOWQyNGEwODMxZjJhNjYiLCJpYXQiOjE3NjU3MjQ3NDMsImV4cCI6MTc2NTgxMTE0M30.aNyUUwEZslqCH03oCcv8hCeRWswTQzSKPkj3RMh-UsY"
+        },
+        transports: ["polling", "websocket"],
+        path: "/socket.io/"
+      });
+
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id);
+    });
+
+    // Join room for specific user's notifications
+    function joinRoom() {
+      const userId = document.getElementById("userId").value;
+
+      if (!userId) {
+        alert("Please enter userId");
+        return;
+      }
+
+      socket.emit("notification:join", userId);
+      alert("Joined notification room: " + userId);
+    }
+
+    // Listen for notifications from the server
+    socket.on("notification:receive", (data) => {
+      console.log("New Notification:", data);
+
+      const logDiv = document.getElementById("log");
+      const el = document.createElement("div");
+      el.className = "notify";
+      el.innerHTML = `<strong>${data.type}</strong>: ${data.message} <br/><small>${data.createdAt}</small>`;
+      logDiv.appendChild(el);
+
+      logDiv.scrollTop = logDiv.scrollHeight;
+    });
+
+    // TENDER EVENTS
+
+      socket.on("tender:created", (data) => {
+    console.log("New Tender Created:", data);
+    alert("New Tender: " + data.name);
+  });
+
+       socket.on("tender:updated", (data) => {
+    console.log("Tender Updated:", data);
+    alert("New Tender: " + data.name);
+  });
+       socket.on("tender:addTenderNotice", (data) => {
+    console.log("Tender addTenderNotice:", data);
+    alert("New addTenderNotice: " + data.name);
+  });
+       socket.on("tender:addTenderNoticeDays", (data) => {
+    console.log("Tender addTenderNoticeDays:", data);
+    alert("New addTenderNoticeDays: " + data.name);
+  });
+       socket.on("tender:updateTenderStatus", (data) => {
+    console.log("Tender updateTenderStatus:", data);
+    alert("New updateTenderStatus: " + data.name);
+  });
+       socket.on("tender:tenderAccepted", (data) => {
+    console.log("Tender tenderAccepted:", data);
+    alert("New tenderAccepted: " + data.name);
+  });
+       socket.on("tender:tendergotTo", (data) => {
+    console.log("Tender tendergotTo:", data);
+    alert("tendergotTo: " + data.name);
+  });
+       socket.on("tender:TenderApprove", (data) => {
+    console.log("Tender TenderApprove:", data);
+    alert("TenderApprove: " + data.name);
+  });
+  
+       socket.on("tender:deleteTender", (data) => {
+    console.log("Tender deleteTender:", data);
+    alert("deleteTender: " + data);
+  });
+       socket.on("tender:tenderAcceptedByCM", (data) => {
+    console.log("Tender tenderAcceptedByCM:", data);
+    alert("tenderAcceptedByCM: " + data);
+  });
+
+  </script>
+</body>
+</html>

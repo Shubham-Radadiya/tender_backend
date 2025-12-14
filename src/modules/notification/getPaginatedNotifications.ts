@@ -4,6 +4,7 @@ import { INotification } from "./types/notification";
 interface PaginationParams {
   page: number;
   limit: number;
+  isRead?: boolean;
 }
 
 interface PaginatedResponse {
@@ -17,14 +18,14 @@ interface PaginatedResponse {
 
 export const getPaginatedNotifications = async (
   userId: string,
-  { page = 1, limit = 20 }: PaginationParams
+  { page = 1, limit = 20, isRead = false }: PaginationParams
 ): Promise<PaginatedResponse> => {
   try {
     // Calculate skip value for pagination
     const skip = (page - 1) * limit;
 
     // Get total count of notifications for the user
-    const total = await NotificationModel.countDocuments({ userId });
+    const total = await NotificationModel.countDocuments({ userId, isRead });
 
     // Get paginated notifications
     const notifications = await NotificationModel.find({ userId })
@@ -49,4 +50,4 @@ export const getPaginatedNotifications = async (
   } catch (error) {
     throw new Error(`Error fetching paginated notifications: ${error.message}`);
   }
-}; 
+};

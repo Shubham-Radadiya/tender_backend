@@ -13,11 +13,11 @@ export const getBillById = async (_id: string) => {
 
 export const getBillsByCompanyAndTenderId = async (
   companyId: string,
-  tenderId: string
+  workOrderId: string
 ) => {
   const bills = await BillModel.find({
     companyId,
-    tenderId,
+    workOrderId,
   });
   return bills.length > 0 ? bills.map((item) => new Bill(item)) : [];
 };

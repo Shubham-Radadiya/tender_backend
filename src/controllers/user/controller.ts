@@ -18,6 +18,8 @@ import { UserRole } from "../../modules/user/schema";
 import { checkCompanyManagers } from "../../modules/user/checkCompanyManagers";
 import { isUserProfileComplete } from "../../helper/isProfileCompleted";
 import { encodePassword } from "../../helper/passwordEncodeDecode";
+import { TenderPartyModel } from "../../modules/tenderParty/schema";
+import { TenderParty, updateTenderParty } from "../../modules/tenderParty";
 
 export default class Controller {
   private readonly createUserSchema = Joi.object({
@@ -175,6 +177,17 @@ export default class Controller {
         });
       if (!payloadValue) {
         return;
+      }
+      const userExistsOnParty = await TenderPartyModel.findOne({
+        email: payloadValue.email,
+        type: "party",
+      });
+      if (userExistsOnParty) {
+        console.log(userExistsOnParty);
+        const plainParty = userExistsOnParty.toObject();
+        await updateTenderParty(
+          new TenderParty({ ...plainParty, type: "user" })
+        );
       }
 
       if (

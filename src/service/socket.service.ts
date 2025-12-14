@@ -5,6 +5,7 @@ import mongoose, { Types } from "mongoose";
 import { createMessage } from "../modules/chat/model";
 import { Server as HttpServer } from "http";
 import jwt from "jsonwebtoken";
+import registerNotificationEvents from "../socket/events/notificationEvents";
 export class SocketService {
   private static instance: SocketService;
   private io: Server<DefaultEventsMap>;
@@ -12,7 +13,7 @@ export class SocketService {
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
   private userRooms: Map<string, Set<string>> = new Map(); // userId -> Set of roomIds
 
-  private constructor() { }
+  private constructor() {}
 
   static getInstance(): SocketService {
     if (!SocketService.instance) {
@@ -65,6 +66,7 @@ export class SocketService {
     this.io.on("connection", (socket: Socket) => {
       console.log("Client connected:", socket.id);
 
+      registerNotificationEvents(this.io, socket);
       socket.on("join_room", async (data, callback) => {
         try {
           const { roomId } = data;
@@ -134,7 +136,7 @@ export class SocketService {
             });
             // Fetch and emit room messages
             const messages = await MessageModel.find({
-              roomId: new Types.ObjectId((roomId)),
+              roomId: new Types.ObjectId(roomId),
             })
               .populate("sender", "name email")
               .populate("replyTo")

@@ -23,13 +23,16 @@ import Department from "./controllers/department";
 import { createServer } from "http";
 
 configDotenv();
+import TenderParty from "./controllers/tenderParty";
+import Unit from "./controllers/unit";
+import WorkOrder from "./controllers/workOrder";
 
 export default class App {
   private static instance: express.Application;
   private static httpServer: any;
   private static io: Server;
 
-  private constructor() { }
+  private constructor() {}
 
   public static getInstance(): express.Application {
     if (!App.instance) {
@@ -103,6 +106,17 @@ export default class App {
     );
     this.instance.use("/billing", validateAuthIdToken, new Bill().router);
     this.instance.use("/party", validateAuthIdToken, new Party().router);
+    this.instance.use(
+      "/tenderParty",
+      validateAuthIdToken,
+      new TenderParty().router
+    );
+    this.instance.use(
+      "/workOrder",
+      validateAuthIdToken,
+      new WorkOrder().router
+    );
+    this.instance.use("/unit", validateAuthIdToken, new Unit().router);
     this.instance.use(
       "/partyWork",
       validateAuthIdToken,

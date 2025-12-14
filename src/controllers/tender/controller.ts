@@ -12,41 +12,101 @@ import {
   ITender,
   Tender,
   updateTender,
+  updateTenderById,
 } from "../../modules/tender";
-import { TenderStatus } from "../../modules/tender/schema";
+import { TenderModel, TenderStatus } from "../../modules/tender/schema";
 import { getTenderQuotationsByTenderId } from "../../modules/tenderQuotation";
 import { NotificationType } from "../../modules/notification/schema/notification";
 import { sendNotification } from "../../helper/sendNotification";
-import { getGM, getTM, getUserById } from "../../modules/user";
-import { UserRole } from "../../modules/user/schema";
+import { getGM, getTM, getUser, getUserById } from "../../modules/user";
+import { UserModel, UserRole } from "../../modules/user/schema";
 import { updateNotification } from "../../modules/notification";
+import { TenderPartyModel } from "../../modules/tenderParty/schema";
+import { getTenderPartyById } from "../../modules/tenderParty";
+import { sendEmail } from "../../helper/sendEmail";
+import { getIO } from "../../socket";
 
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
-    tenderNo: Joi.string().required(),
+    // tenderNo: Joi.string().required(),
     name: Joi.string().required(),
     createdDate: Joi.date().required(),
-    lastDate: Joi.date().required(),
+    // lastDate: Joi.date().required(),
     category: Joi.string().required(),
     department: Joi.string().required(),
+    isNoticeGenerated: Joi.boolean().default(false),
     nameOfWork: Joi.string().required(),
     providedBy: Joi.string().required(),
+    status: Joi.string()
+      .valid(...Object.values(TenderStatus))
+      .default(TenderStatus.SELECT_STATUS),
     items: Joi.array()
       .items(
         Joi.object({
           description: Joi.string().required(),
           quantity: Joi.number().required(),
           unit: Joi.string().required(),
+          parItemRate: Joi.number(),
         })
       )
       .required(),
   });
 
+  private readonly addTenderNoticeSchema = Joi.object({
+    // type: Joi.string().valid("manual", "upload").required(),
+    tenderId: Joi.string().required(),
+    tender_notice_number: Joi.string().required(),
+    tender_notice_date: Joi.date().required(),
+    due_date: Joi.date().required(),
+    fileName: Joi.string().required(),
+    // fileName: Joi.when("type", {
+    //   is: "upload",
+    //   then: Joi.string().required(),
+    // }),
+    // itemName: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.string().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // quantity: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.number().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // unit: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.string().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // rate: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.number().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+    // amount: Joi.when("type", {
+    //   is: "manual",
+    //   then: Joi.number().required(),
+    //   otherwise: Joi.forbidden(),
+    // }),
+  });
+
+  private readonly addTenderNoticeDaysSchema = Joi.object({
+    tenderId: Joi.string().required(),
+    days: Joi.number().required(),
+    partyData: Joi.array(),
+  });
+
+  private readonly uploadNoticeSchema = Joi.object({
+    tenderId: Joi.string().required(),
+    tender_notice_number: Joi.string().required(),
+    tender_notice_date: Joi.date().required(),
+    due_date: Joi.date().required(),
+  });
+
   private readonly updateTenderSchema = Joi.object({
-    tenderNo: Joi.string(),
+    // tenderNo: Joi.string(),
     name: Joi.string(),
     createdDate: Joi.date(),
-    lastDate: Joi.date(),
     category: Joi.string(),
     department: Joi.string(),
     nameOfWork: Joi.string(),
@@ -56,8 +116,10 @@ export default class Controller {
         description: Joi.string().required(),
         quantity: Joi.number().required(),
         unit: Joi.string().required(),
+        parItemRate: Joi.number(),
       })
     ),
+    partyData: Joi.array(),
   });
 
   private readonly tenderGotToSchema = Joi.object({
@@ -65,7 +127,13 @@ export default class Controller {
   });
 
   private readonly tenderAcceptedSchema = Joi.object({
-    status: Joi.string().valid("GM_ACCEPTED", "GM_DECLINED").required(),
+    status: Joi.string()
+      .valid(
+        TenderStatus.GM_ACCEPTED,
+        TenderStatus.GM_DECLINED,
+        TenderStatus.GM_QUTATION_PENDING
+      )
+      .required(),
     declineReason: Joi.when("status", {
       is: "GM_DECLINED",
       then: Joi.string().required().messages({
@@ -120,6 +188,8 @@ export default class Controller {
         TenderStatus.GM_PENDING,
         TenderStatus.GM_ACCEPTED,
         TenderStatus.TM_PENDING,
+        TenderStatus.GM_QUTATION_PENDING,
+        TenderStatus.TENDER_RECEIPT_PENDING,
       ]);
       res.status(200).json({ message: "Tender List For GM", tenderList });
       return;
@@ -212,11 +282,12 @@ export default class Controller {
           .json({ message: "Don't have access to generate the Tender." });
         return;
       }
+      const randomNumber = Math.floor(1000 + Math.random() * 9000);
+
       const newTender = await createTender(
         new Tender({
           ...payloadValue,
           createdBy: user._id,
-          status: TenderStatus.GM_PENDING,
           history: [
             {
               action: `Tender manager created tender '${payloadValue.name}' and assigned it to the Group Manager`,
@@ -226,15 +297,18 @@ export default class Controller {
           ],
         })
       );
+      const io = getIO();
 
-      const gmData = await getGM();
+      io.emit("tender:created", newTender);
+
+      // const gmData = await getGM();
       // Send notification to GM
-      await sendNotification(
-        gmData._id,
-        newTender._id!,
-        NotificationType.TENDER_CREATED,
-        `New tender ${payloadValue.name} has been created and assigned to you`
-      );
+      // await sendNotification(
+      //   gmData._id,
+      //   newTender._id!,
+      //   NotificationType.TENDER_CREATED,
+      //   `New tender ${payloadValue.name} has been created and assigned to you`
+      // );
 
       const populatedTender = await getTenderById(newTender._id);
       res.status(201).json(populatedTender);
@@ -248,7 +322,285 @@ export default class Controller {
     }
   };
 
-  protected readonly updateTender = async (req: Request, res: Response) => {
+  protected readonly addTenderNotice = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const user = req.authUser;
+      const payload = req.body;
+
+      if (!payload) {
+        return res.status(422).json({ message: "Invalid request body" });
+      }
+
+      // if (payload.type === "upload" && req.file) {
+      //   payload.fileName = req.file.filename;
+      // }
+
+      if (req.file) {
+        payload.fileName = req.file.filename;
+      }
+
+      const payloadValue = await this.addTenderNoticeSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          if (isError(e)) {
+            return res.status(422).json(e);
+          } else {
+            return res.status(422).json({ message: e.message });
+          }
+        });
+
+      if (!payloadValue) return;
+
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER &&
+        user.role !== UserRole.GROUP_MANAGER
+      ) {
+        return res.status(403).json({
+          message: "You do not have permission to add a tender notice.",
+        });
+      }
+      const existingTender = await getTenderById(payloadValue.tenderId);
+      if (!existingTender) {
+        return res.status(404).json({ message: "Tender not found." });
+      }
+
+      if (existingTender.status !== TenderStatus.EXECUTIVE_ENGINEER) {
+        return res.status(403).json({
+          message: "Tender status is not Executive Engineer.",
+        });
+      }
+
+      const updatedTender = await updateTenderById(payloadValue.tenderId, {
+        $set: {
+          tenderNotice: {
+            fileName: payloadValue.fileName,
+            days: payloadValue.days,
+            // itemName: payloadValue.itemName,
+            // quantity: payloadValue.quantity,
+            // unit: payloadValue.unit,
+            // rate: payloadValue.rate,
+            // amount: payloadValue.amount,
+            tender_notice_number: payloadValue.tender_notice_number,
+            tender_notice_date: payloadValue.tender_notice_date,
+            due_date: payloadValue.due_date,
+          },
+        },
+      });
+
+      if (!updatedTender) {
+        return res.status(404).json({ message: "Tender not found" });
+      }
+      const io = getIO();
+      io.emit("tender:addTenderNotice", updatedTender);
+
+      res.status(201).json({
+        message: "Tender notice added successfully",
+        data: updatedTender,
+      });
+    } catch (error) {
+      console.log("Error in addTenderNotice", error);
+      res.status(400).json({ error: error?.message });
+    }
+  };
+
+  protected readonly addTenderNoticeDays = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const user = req.authUser;
+      const payload = req.body;
+
+      if (!payload) {
+        return res.status(422).json({ message: "Invalid request body" });
+      }
+
+      const payloadValue = await this.addTenderNoticeDaysSchema
+        .validateAsync(payload)
+        .then((value) => value)
+        .catch((e) => {
+          console.log(e);
+          return res.status(422).json({
+            message: e.message,
+          });
+        });
+
+      if (!payloadValue) return;
+
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER &&
+        user.role !== UserRole.GROUP_MANAGER
+      ) {
+        return res.status(403).json({
+          message: "You do not have permission to update days.",
+        });
+      }
+      const existingTender = await getTenderById(payloadValue.tenderId);
+      if (!existingTender) {
+        res.status(404).json({ message: "Tender not found" });
+        return;
+      }
+
+      if (existingTender?.status !== TenderStatus.EXECUTIVE_ENGINEER) {
+        return res.status(403).json({
+          message: "Tender status is not a Executive Engineer.",
+        });
+      }
+
+      const updateQuery: any = {
+        $set: {
+          [`tenderNotice.days`]: payloadValue.days,
+          isNoticeGenerated: true,
+        },
+      };
+
+      if (
+        Array.isArray(payloadValue.partyData) &&
+        payloadValue.partyData.length > 0
+      ) {
+        const existingPartyIds =
+          existingTender?.partyData?.map((p: any) => p.id?.toString()) || [];
+
+        const newParties = payloadValue.partyData.filter(
+          (p: any) => !existingPartyIds.includes(p.id?.toString())
+        );
+
+        if (newParties.length > 0) {
+          updateQuery.$push = {
+            partyData: { $each: newParties },
+          };
+        }
+      }
+
+      const updatedTender = await updateTenderById(
+        payloadValue.tenderId,
+        updateQuery
+      );
+
+      if (
+        Array.isArray(payloadValue.partyData) &&
+        payloadValue.partyData.length > 0
+      ) {
+        for (const party of payloadValue.partyData) {
+          if (party.type === "party") {
+            const partyDetails = await getTenderPartyById(party.id);
+            if (partyDetails) {
+              const adminDetails = await getUser(UserRole.ADMIN);
+              if (adminDetails) {
+                await sendNotification(
+                  adminDetails?.[0]._id.toString(),
+                  NotificationType.PARTY_NEEDS_USER,
+                  `Party ${partyDetails.email} has been added to tender ${updatedTender.name}. Please create a user for them.`
+                );
+              }
+
+              await sendEmail({
+                to: partyDetails.email,
+                subject: "You have been added to a Tender",
+                text: `Dear ${partyDetails.name || "Party"},
+
+          You have been added as a party to Tender "${updatedTender.name}".
+          Please contact the Admin (${
+            adminDetails?.[0]?.email
+          }) to create your user account.
+
+          Regards,
+          Tender System`,
+              });
+            }
+          }
+        }
+      }
+
+      const gmData = await getGM();
+      const tenderData = await getTenderById(payloadValue.tenderId);
+      if (gmData && tenderData) {
+        await sendNotification(
+          gmData._id,
+          NotificationType.TENDER_CREATED,
+          `New tender ${tenderData.name} has been created and assigned to you`,
+          tenderData._id!
+        );
+      }
+
+      const io = getIO();
+
+      io.emit("tender:addTenderNoticeDays", updatedTender);
+      console.log("updatedTender :", updatedTender);
+
+      res.status(200).json({
+        message: "Days updated successfully in Tender Notice",
+        data: updatedTender,
+      });
+    } catch (error) {
+      console.log("Error in addTenderNoticeDays", error);
+      res.status(400).json({ error: error?.message });
+    }
+  };
+
+  protected readonly updateTenderStatus = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const user = req.authUser;
+      const { id, status } = req.body;
+
+      if (!status || !Object.values(TenderStatus).includes(status)) {
+        return res.status(422).json({ message: "Invalid or missing status." });
+      }
+      if (
+        user.role !== UserRole.ADMIN &&
+        user.role !== UserRole.TENDER_MANAGER
+      ) {
+        res
+          .status(422)
+          .json({ message: "Don't have access to generate the Tender." });
+        return;
+      }
+
+      const existingTender = await getTenderById(id);
+      if (!existingTender) {
+        return res.status(404).json({ message: "Tender not found." });
+      }
+      existingTender.status = status;
+      if (
+        status == TenderStatus.EXECUTIVE_ENGINEER &&
+        !existingTender.workOrderStatus
+      ) {
+        if (existingTender.juniorEngineerCount < 2) {
+          existingTender.juniorEngineerCount += 1;
+          if (existingTender.juniorEngineerCount == 2) {
+            existingTender.workOrderStatus = true;
+          }
+        }
+      }
+
+      const updatedTender = await updateTender(new Tender(existingTender));
+      const io = getIO();
+
+      io.emit("tender:updateTenderStatus", updatedTender);
+      res.status(200).json({
+        message: "Tender status updated successfully.",
+        data: updatedTender,
+      });
+    } catch (error) {
+      console.error("Error in updateTenderStatus", error);
+      res.status(500).json({ error: error?.message });
+    }
+  };
+
+  protected readonly updateTender = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
     try {
       const tenderId = req.params.id;
       const payload = req.body;
@@ -278,32 +630,77 @@ export default class Controller {
 
       const updated = await updateTender(new Tender(mergedTender));
 
-      // Send notification to TM based on status      
-      let notificationType: NotificationType;
-      let message: string;
+      const io = getIO();
 
-      switch (payloadValue.status) {
-        case TenderStatus.GM_ACCEPTED:
-          notificationType = NotificationType.TENDER_ACCEPTED;
-          message = `Tender "${existingTender.name}" has been accepted by GM`;
-          break;
-        case TenderStatus.GM_DECLINED:
-          notificationType = NotificationType.TENDER_DECLINED;
-          message = `Tender "${existingTender.name}" has been declined by GM`;
-          break;
-        case TenderStatus.GM_APPROVED:
-          notificationType = NotificationType.TENDER_APPROVED;
-          message = `Tender "${existingTender.name}" has been approved by GM`;
-          break;
-        default:
-          res.status(200).json(updated);
-          return;
+      io.emit("tender:updated", updated);
+
+      if (payloadValue.partyData && payloadValue.partyData.length > 0) {
+        for (const party of payloadValue.partyData) {
+          if (party.type === "party") {
+            const partyUser = await getTenderPartyById(party.id);
+            if (!partyUser) continue;
+
+            // check if already exists in tender's partyData
+            const alreadyExists = existingTender.partyData?.some(
+              (p) =>
+                p.id.toString() === party.id.toString() && p.type === "party"
+            );
+
+            if (!alreadyExists) {
+              const adminDetails = await getUser(UserRole.ADMIN);
+              if (adminDetails) {
+                await sendNotification(
+                  adminDetails?.[0]._id.toString(),
+                  NotificationType.PARTY_NEEDS_USER,
+                  `Party ${partyUser.email} has been added to tender ${updated.name}. Please create a user for them.`
+                );
+
+                // 2. Send Email
+                await sendEmail({
+                  to: partyUser.email,
+                  subject: "You have been added to a Tender",
+                  text: `Dear ${partyUser.name || "Party"}, 
+          
+          You have been added as a party to Tender "${updated.name}". 
+          Please contact the Admin (${
+            adminDetails?.[0]?.email
+          }) to create your user account. 
+
+          Regards,
+          Tender System`,
+                });
+              }
+            }
+          }
+        }
+
+        // Send notification to TM based on status
+        let notificationType: NotificationType;
+        let message: string;
+
+        switch (payloadValue.status) {
+          case TenderStatus.GM_ACCEPTED:
+            notificationType = NotificationType.TENDER_ACCEPTED;
+            message = `Tender "${existingTender.name}" has been accepted by GM`;
+            break;
+          case TenderStatus.GM_DECLINED:
+            notificationType = NotificationType.TENDER_DECLINED;
+            message = `Tender "${existingTender.name}" has been declined by GM`;
+            break;
+          case TenderStatus.GM_APPROVED:
+            notificationType = NotificationType.TENDER_APPROVED;
+            message = `Tender "${existingTender.name}" has been approved by GM`;
+            break;
+          default:
+            res.status(200).json(updated);
+            return;
+        }
+
+        // await sendNotification(tmId, existingTender._id!, notificationType, message);
+
+        res.status(200).json(updated);
+        return;
       }
-
-      // await sendNotification(tmId, existingTender._id!, notificationType, message);
-
-      res.status(200).json(updated);
-      return;
     } catch (error) {
       console.log("Error in updateTender", error);
       res.status(500).json({ message: error.message });
@@ -351,14 +748,13 @@ export default class Controller {
       const companyDetails = await getUserById(
         payloadValue?.companyAssigned.toString()
       );
-
       const mergedTender = {
         ...existingTender,
         ...payloadValue,
         history: [
           ...(existingTender.history || []),
           {
-            action: `Tender '${existingTender.name}' assigned to winning company '${companyDetails.firstName} ${companyDetails.lastName}' by Group Manager`,
+            action: `Tender '${existingTender.name}' assigned to winning company '${companyDetails?.firstName} ${companyDetails?.lastName}' by Group Manager`,
             by: req.authUser._id,
             date: new Date(),
           },
@@ -366,6 +762,10 @@ export default class Controller {
       };
 
       const updated = await updateTender(new Tender(mergedTender));
+      const io = getIO();
+
+      io.emit("tender:tendergotTo", updated);
+
       res.status(200).json(updated);
       return;
     } catch (error) {
@@ -410,7 +810,8 @@ export default class Controller {
       }
 
       const action =
-        payloadValue?.status === "GM_ACCEPTED"
+        payloadValue?.status === TenderStatus.GM_ACCEPTED ||
+        TenderStatus.GM_QUTATION_PENDING
           ? `Tender '${existingTender.name}' accepted by Group Manager`
           : `Tender '${existingTender.name}' declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
 
@@ -435,16 +836,21 @@ export default class Controller {
 
       const getTMData = await getTM();
       const notificationType =
-        payloadValue?.status === "GM_ACCEPTED"
+        payloadValue?.status === TenderStatus.GM_ACCEPTED ||
+        TenderStatus.GM_QUTATION_PENDING
           ? NotificationType.TENDER_ACCEPTED
           : NotificationType.TENDER_DECLINED;
 
       await sendNotification(
         getTMData._id,
-        existingTender._id,
         notificationType,
-        action
+        action,
+        existingTender._id
       );
+
+      const io = getIO();
+
+      io.emit("tender:tenderAccepted", updated);
 
       res.status(200).json(updated);
       return;
@@ -465,6 +871,9 @@ export default class Controller {
       }
 
       await deleteTenderById(tenderId);
+      const io = getIO();
+      io.emit("tender:deleteTender", tenderId);
+
       res.status(200).json({ message: "Tender deleted successfully" });
       return;
     } catch (error) {
@@ -494,7 +903,7 @@ export default class Controller {
         return;
       }
 
-      if (existingTender.status !== TenderStatus.GM_ACCEPTED) {
+      if (existingTender.status !== TenderStatus.GM_QUTATION_PENDING) {
         res.status(400).json({
           message: "Tender must be in GM_ACCEPTED state before approval",
         });
@@ -544,10 +953,13 @@ export default class Controller {
       const getTMData = await getTM();
       await sendNotification(
         getTMData._id,
-        existingTender._id,
         NotificationType.TENDER_APPROVED,
-        `Tender approved by the group manager and assigned back to you.`
+        `Tender approved by the group manager and assigned back to you.`,
+        existingTender._id
       );
+
+      const io = getIO();
+      io.emit("tender:TenderApprove", updatedTender);
 
       res.status(200).json({
         message: "Tender approved by GM successfully and assigned back to TM.",
@@ -563,9 +975,9 @@ export default class Controller {
 
   protected readonly passTenderToCM = async (req: Request, res: Response) => {
     try {
-      const authUser = req.authUser
-      const tenderId = req.params.id
-      const tenderDetails = await getTenderById(tenderId)
+      const authUser = req.authUser;
+      const tenderId = req.params.id;
+      const tenderDetails = await getTenderById(tenderId);
       if (!tenderDetails) {
         res.status(500).json({ message: "Invalid Tender Id." });
         return;
@@ -579,21 +991,20 @@ export default class Controller {
       }
       const mergedTender = {
         ...tenderDetails,
-        status: TenderStatus.CM_PENDING,
       };
       await updateTender(new Tender(mergedTender));
       await sendNotification(
         tenderDetails.companyAssigned,
-        tenderDetails._id,
         NotificationType.TENDER_APPROVED_BY_TM,
-        `New Tender ${tenderDetails.name} has been created and assigned to you`
+        `New Tender ${tenderDetails.name} has been created and assigned to you`,
+        tenderDetails._id
       );
     } catch (error) {
       console.log("Error in assignTenderToCM", error);
       res.status(500).json({ message: error.message });
       return;
     }
-  }
+  };
 
   protected readonly tenderAcceptedByCM = async (
     req: Request,
@@ -664,10 +1075,12 @@ export default class Controller {
 
       await sendNotification(
         getTMData._id,
-        existingTender._id,
         notificationType,
-        action
+        action,
+        existingTender._id
       );
+      const io = getIO();
+      io.emit("tender:tenderAcceptedByCM", updated);
 
       res.status(200).json(updated);
       return;
@@ -675,6 +1088,58 @@ export default class Controller {
       console.log("Error in Tender Accepted By CM", error);
       res.status(500).json({ message: error.message });
       return;
+    }
+  };
+  protected readonly getTenderPartyData = async (
+    req: Request,
+    res: Response
+  ): Promise<any> => {
+    try {
+      const tenderId = req.params.id;
+
+      const tender = await getTenderById(tenderId);
+
+      if (!tender) {
+        return res.status(404).json({ message: "Tender not found" });
+      }
+
+      const partyData = tender.partyData || [];
+
+      const userIds = partyData
+        .filter((entry) => entry.type === "user")
+        .map((entry) => entry.id);
+
+      const partyIds = partyData
+        .filter((entry) => entry.type === "party")
+        .map((entry) => entry.id);
+
+      const [users, parties] = await Promise.all([
+        UserModel.find({ _id: { $in: userIds } }, "name email address").lean(),
+        TenderPartyModel.find(
+          { _id: { $in: partyIds } },
+          "name email address"
+        ).lean(),
+      ]);
+
+      const userList = users.map((user) => ({
+        ...user,
+        type: "user",
+      }));
+
+      const partyList = parties.map((party) => ({
+        ...party,
+        type: "party",
+      }));
+
+      const combined = [...userList, ...partyList];
+
+      return res.status(200).json({
+        total: combined.length,
+        data: combined,
+      });
+    } catch (error) {
+      console.error("Error fetching party data:", error);
+      return res.status(500).json({ message: "Server error" });
     }
   };
 }
