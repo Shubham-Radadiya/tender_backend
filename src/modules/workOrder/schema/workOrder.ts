@@ -25,6 +25,9 @@ const workOrder = new Schema<IWorkOrder>(
     amount: {
       type: Number,
     },
+    invoiceNumber: {
+      type: String,
+    },
   },
   {
     timestamps: true,

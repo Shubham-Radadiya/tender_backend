@@ -13,6 +13,7 @@ import {
   WorkOrder,
 } from "../../modules/workOrder";
 import { WorkOrderModel } from "../../modules/workOrder/schema";
+import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
 
 export default class Controller {
   private readonly createWorkOrderSchema = Joi.object({
@@ -54,6 +55,7 @@ export default class Controller {
     }),
 
     fileName: Joi.string().optional().trim(),
+    invoiceNumber: Joi.string().optional(),
 
     createdAt: Joi.date()
       .optional()
@@ -98,6 +100,7 @@ export default class Controller {
       then: Joi.optional(),
       otherwise: Joi.required(),
     }),
+    invoiceNumber: Joi.string().optional(),
 
     fileName: Joi.string().optional().trim(),
 
@@ -193,9 +196,17 @@ export default class Controller {
         res.status(422).json({ message: "Unauthorize Request." });
         return;
       }
-
+      let invoiceNumber;
+      if (payload?.invoiceNumber) {
+        invoiceNumber = payload?.invoiceNumber;
+      } else {
+        invoiceNumber = await generateInvoiceNumber(
+          user,
+          payloadValue?.tenderId.toString()
+        );
+      }
       const newWorkOrder = await createWorkOrder(
-        new WorkOrder({ ...payloadValue })
+        new WorkOrder({ ...payloadValue, invoiceNumber })
       );
       // const adminDetails = await getUser(UserRole.ADMIN);
       // await sendNotification(
