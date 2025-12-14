@@ -7,7 +7,7 @@ import { BillStatus } from "../schema";
 export interface IBill {
   _id?: string;
   companyId: string | IUser;
-  tenderId: string | ITender;
+  workOrderId: string | ITender;
   amount: number;
   taxPercent: number;
   additionalCharges: number;
@@ -24,7 +24,7 @@ export interface IBill {
 export class Bill implements IBill {
   _id?: string;
   companyId: string;
-  tenderId: string;
+  workOrderId: string;
   amount: number;
   taxPercent: number;
   additionalCharges: number;
@@ -45,8 +45,10 @@ export class Bill implements IBill {
       typeof input.companyId === "string"
         ? input.companyId
         : input.companyId._id;
-    this.tenderId =
-      typeof input.tenderId === "string" ? input.tenderId : input.tenderId._id;
+    this.workOrderId =
+      typeof input.workOrderId === "string"
+        ? input.workOrderId
+        : input.workOrderId._id;
     this.amount = input.amount;
     this.taxPercent = input.taxPercent;
     this.additionalCharges = input.additionalCharges;

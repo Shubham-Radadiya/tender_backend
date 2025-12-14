@@ -21,15 +21,15 @@ import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
 import { sendNotification } from "../../helper/sendNotification";
 import { getGM, getTM } from "../../modules/user";
 import { NotificationType } from "../../modules/notification/schema";
+import { getWorkOrderById } from "../../modules/workOrder";
 
 export default class Controller {
   private readonly createBillSchema = Joi.object({
     companyId: Joi.string().required(),
-    tenderId: Joi.string().required(),
+    workOrderId: Joi.string().required(),
     amount: Joi.number().required(),
     taxPercent: Joi.number().required(),
     // additionalCharges: Joi.number().required(),
-    total: Joi.number().required(),
     invoiceNumber: Joi.string().optional(),
     address: Joi.string().optional(),
     subject: Joi.string().optional(),
@@ -39,7 +39,7 @@ export default class Controller {
 
   private readonly updateBillSchema = Joi.object({
     companyId: Joi.string().optional(),
-    tenderId: Joi.string().optional(),
+    workOrderId: Joi.string().optional(),
     // amount: Joi.number().optional(),
     taxPercent: Joi.number().optional(),
     // additionalCharges: Joi.number().optional(),
@@ -135,22 +135,25 @@ export default class Controller {
       if (!payloadValue) {
         return;
       }
-      if (authUser.role !== UserRole.COMPANY_MANAGER && authUser.role !== UserRole.BANK_MANAGER) {
-        res.status(422).json({ message: "Not have permission to generate." });
-        return;
-      }
-
-      const existingTender = await getTenderById(payload.tenderId);
-      if (!existingTender) {
-        res.status(422).json({ message: "Invalid Tender." });
-        return;
-      }
       if (
-        existingTender.companyAssigned.toString() !== authUser._id.toString()
+        authUser.role !== UserRole.COMPANY_MANAGER &&
+        authUser.role !== UserRole.BANK_MANAGER
       ) {
         res.status(422).json({ message: "Not have permission to generate." });
         return;
       }
+
+      const workOrderTender = await getWorkOrderById(payload.workOrderId);
+      if (!workOrderTender) {
+        res.status(422).json({ message: "Invalid workOrder." });
+        return;
+      }
+      // if (
+      //   existingTender.companyAssigned.toString() !== authUser._id.toString()
+      // ) {
+      //   res.status(422).json({ message: "Not have permission to generate." });
+      //   return;
+      // }
 
       // right now use total Amount from payload
 
@@ -159,18 +162,23 @@ export default class Controller {
       //   return sum + item?.amount;
       // }, 0);
 
-      const totalAmount = payloadValue.total;
+      const totalAmount = workOrderTender.amount;
+      console.log("totalAmount :", totalAmount);
       const amountData = await getBillsByCompanyAndTenderId(
         req.authUser._id,
-        payload.tenderId
+        payload.workOrderId
       );
       const totalBillAmount = amountData.reduce((sum, bill) => {
         return sum + bill?.amount;
       }, 0);
 
-      const billAmount =
-        payloadValue.amount + totalAmount * (payloadValue.taxPercent / 100);
+      const amount = Number(payloadValue.amount) || 0;
+      const taxPercent = Number(payloadValue.taxPercent) || 0;
 
+      const billAmount = amount * (1 + taxPercent / 100);
+      console.log("amount :", payloadValue?.amount);
+      console.log("billAmount :", billAmount);
+      console.log("totalBillAmount :", totalBillAmount);
       if (totalBillAmount + billAmount === totalAmount) {
         const getTMData = await getTM();
         const getGMData = await getGM();
@@ -178,13 +186,13 @@ export default class Controller {
         await sendNotification(
           getTMData._id,
           NotificationType.payment_COMPLETED,
-          `Payment completed for tender ${existingTender.name || ""}`
+          `Payment completed for tender ${workOrderTender.title || ""}`
         );
 
         await sendNotification(
           getGMData._id,
           NotificationType.payment_COMPLETED,
-          `Payment completed for tender ${existingTender.name || ""}`
+          `Payment completed for tender ${workOrderTender.title || ""}`
         );
       }
 
@@ -202,7 +210,7 @@ export default class Controller {
       } else {
         invoiceNumber = await generateInvoiceNumber(
           authUser,
-          payloadValue?.tenderId.toString()
+          payloadValue?.workOrderId.toString()
         );
       }
 

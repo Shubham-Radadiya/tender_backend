@@ -14,6 +14,9 @@ import {
 } from "../../modules/workOrder";
 import { WorkOrderModel } from "../../modules/workOrder/schema";
 import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
+import { sendNotification } from "../../helper/sendNotification";
+import { NotificationType } from "../../modules/notification/schema";
+import { getUser } from "../../modules/user";
 
 export default class Controller {
   private readonly createWorkOrderSchema = Joi.object({
@@ -208,12 +211,12 @@ export default class Controller {
       const newWorkOrder = await createWorkOrder(
         new WorkOrder({ ...payloadValue, invoiceNumber })
       );
-      // const adminDetails = await getUser(UserRole.ADMIN);
-      // await sendNotification(
-      //   adminDetails?.[0]._id.toString(),
-      //   NotificationType.WorkOrder_CREATED,
-      //   `Tender Manager created this workOrder ${newWorkOrder.email || ""}`
-      // );
+      const bankManagerDetails = await getUser(UserRole.BANK_MANAGER);
+      await sendNotification(
+        bankManagerDetails?.[0]._id.toString(),
+        NotificationType.WorkOrder_CREATED,
+        `Tender Manager created this workOrder ${newWorkOrder.title || ""}`
+      );
 
       res.status(201).json(newWorkOrder);
       return;

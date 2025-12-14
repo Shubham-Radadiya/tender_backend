@@ -40,11 +40,7 @@
 
   <script>
     // Connect to your backend socket server
-    const socket = io("http://localhost:5000", {
-      auth: {
-        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTM2ZGNmNDQwOWQyNGEwODMxZjJhNjYiLCJpYXQiOjE3NjUzODE0MTgsImV4cCI6MTc2NTQ2NzgxOH0.f9Jqbc6mmFzabt0E8Tmfyd2-MBBdhAqyg0IOnyKP6Lw"
-      }
-    });
+    const socket = io("http://localhost:5000");
 
     socket.on("connect", () => {
       console.log("Connected:", socket.id);
