@@ -122,6 +122,10 @@ export default class App {
       validateAuthIdToken,
       new PartyWork().router
     );
+    this.instance.use(
+      "/uploads",
+      express.static(path.join(process.cwd(), "uploads"))
+    );
   }
 
   private static initializeMiddleware() {
