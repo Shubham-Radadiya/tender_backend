@@ -40,7 +40,11 @@ export class SocketService {
 
     // Socket authentication middleware
     this.io.use((socket, next) => {
-      const token = socket.handshake.auth.token;
+      let token = socket.handshake.auth.token;
+      if (!token && socket.handshake.query?.["auth.token"]) {
+        token = socket.handshake.query["auth.token"] as string;
+      }
+
       if (!token) {
         return next(new Error("Authentication required"));
       }
