@@ -211,8 +211,18 @@ export default class Controller {
       }
 
       const encryptedPassword = encodePassword(payloadValue.password);
+      let profile = payloadValue.profile;
+      if (!profile) {
+        console.log("req.file :", req.file);
+        if (req.file) {
+          profile = `/uploads/${req.file.filename}`;
+        } else {
+          profile = "";
+        }
+      }
+
       const newUser = await createUser(
-        new User({ ...payloadValue, password: encryptedPassword })
+        new User({ ...payloadValue, password: encryptedPassword, profile })
       );
       res.status(201).json(newUser);
       return;
@@ -257,11 +267,18 @@ export default class Controller {
         res.status(404).json({ message: "User not found" });
         return;
       }
+      let profile = "";
+      if (req.file) {
+        profile = `/uploads/${req.file.filename}`;
+      } else {
+        profile = payloadValue.profile || existingUser.profile;
+      }
 
       await updateUser(
         new User({
           ...existingUser,
           ...payloadValue,
+          profile,
           companyDetails: {
             ...existingUser.companyDetails,
             ...payloadValue.companyDetails,
