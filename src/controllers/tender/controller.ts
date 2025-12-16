@@ -339,7 +339,7 @@ export default class Controller {
       // }
 
       if (req.file) {
-        payload.fileName = req.file.filename;
+        payload.fileName = `/uploads/${req.file.filename}`;
       }
 
       const payloadValue = await this.addTenderNoticeSchema
