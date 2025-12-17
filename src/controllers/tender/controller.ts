@@ -447,7 +447,7 @@ export default class Controller {
         res.status(404).json({ message: "Tender not found" });
         return;
       }
-
+      console.log("existingTender?.status :", existingTender?.status);
       if (existingTender?.status !== TenderStatus.EXECUTIVE_ENGINEER) {
         return res.status(403).json({
           message: "Tender status is not a Executive Engineer.",
@@ -458,9 +458,10 @@ export default class Controller {
         $set: {
           [`tenderNotice.days`]: payloadValue.days,
           isNoticeGenerated: true,
+          partyData: payloadValue.partyData,
         },
       };
-
+      let newParties: any[] = [];
       if (
         Array.isArray(payloadValue.partyData) &&
         payloadValue.partyData.length > 0
@@ -468,30 +469,22 @@ export default class Controller {
         const existingPartyIds =
           existingTender?.partyData?.map((p: any) => p.id?.toString()) || [];
 
-        const newParties = payloadValue.partyData.filter(
+        newParties = payloadValue.partyData.filter(
           (p: any) => !existingPartyIds.includes(p.id?.toString())
         );
-
-        if (newParties.length > 0) {
-          updateQuery.$push = {
-            partyData: { $each: newParties },
-          };
-        }
       }
-
+      console.log("updateQuery :", updateQuery);
       const updatedTender = await updateTenderById(
         payloadValue.tenderId,
         updateQuery
       );
 
-      if (
-        Array.isArray(payloadValue.partyData) &&
-        payloadValue.partyData.length > 0
-      ) {
-        for (const party of payloadValue.partyData) {
+      if (Array.isArray(newParties) && newParties.length > 0) {
+        for (const party of newParties) {
           if (party.type === "party") {
             const partyDetails = await getTenderPartyById(party.id);
             if (partyDetails) {
+              console.log("partyDetails :", partyDetails);
               const adminDetails = await getUser(UserRole.ADMIN);
               if (adminDetails) {
                 await sendNotification(
