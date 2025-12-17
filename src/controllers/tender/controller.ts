@@ -299,8 +299,7 @@ export default class Controller {
       );
       const io = getIO();
 
-      io.emit("tender:created", newTender);
-
+      
       // const gmData = await getGM();
       // Send notification to GM
       // await sendNotification(
@@ -311,6 +310,7 @@ export default class Controller {
       // );
 
       const populatedTender = await getTenderById(newTender._id);
+      io.emit("tender:created", populatedTender);
       res.status(201).json(populatedTender);
       return;
     } catch (error) {
