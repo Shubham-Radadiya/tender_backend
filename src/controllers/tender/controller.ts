@@ -531,13 +531,13 @@ export default class Controller {
       }
 
       const io = getIO();
-
-      io.emit("tender:addTenderNoticeDays", updatedTender);
-      console.log("updatedTender :", updatedTender);
+const populatedTender = await getTenderById(updatedTender._id)
+      io.emit("tender:addTenderNoticeDays", populatedTender);
+      console.log("updatedTender :", populatedTender);
 
       res.status(200).json({
         message: "Days updated successfully in Tender Notice",
-        data: updatedTender,
+        data: populatedTender,
       });
     } catch (error) {
       console.log("Error in addTenderNoticeDays", error);
