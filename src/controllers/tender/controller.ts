@@ -299,7 +299,6 @@ export default class Controller {
       );
       const io = getIO();
 
-      
       // const gmData = await getGM();
       // Send notification to GM
       // await sendNotification(
@@ -397,11 +396,12 @@ export default class Controller {
         return res.status(404).json({ message: "Tender not found" });
       }
       const io = getIO();
-      io.emit("tender:addTenderNotice", updatedTender);
+      const populatedTender = await getTenderById(updatedTender._id);
+      io.emit("tender:addTenderNotice", populatedTender);
 
       res.status(201).json({
         message: "Tender notice added successfully",
-        data: updatedTender,
+        data: populatedTender,
       });
     } catch (error) {
       console.log("Error in addTenderNotice", error);
@@ -531,7 +531,7 @@ export default class Controller {
       }
 
       const io = getIO();
-const populatedTender = await getTenderById(updatedTender._id)
+      const populatedTender = await getTenderById(updatedTender._id);
       io.emit("tender:addTenderNoticeDays", populatedTender);
       console.log("updatedTender :", populatedTender);
 
@@ -585,11 +585,12 @@ const populatedTender = await getTenderById(updatedTender._id)
 
       const updatedTender = await updateTender(new Tender(existingTender));
       const io = getIO();
+      const populatedTender = await getTenderById(updatedTender._id);
 
-      io.emit("tender:updateTenderStatus", updatedTender);
+      io.emit("tender:updateTenderStatus", populatedTender);
       res.status(200).json({
         message: "Tender status updated successfully.",
-        data: updatedTender,
+        data: populatedTender,
       });
     } catch (error) {
       console.error("Error in updateTenderStatus", error);
@@ -631,8 +632,8 @@ const populatedTender = await getTenderById(updatedTender._id)
       const updated = await updateTender(new Tender(mergedTender));
 
       const io = getIO();
-
-      io.emit("tender:updated", updated);
+      const populatedTender = await getTenderById(updated._id);
+      io.emit("tender:updated", populatedTender);
 
       if (payloadValue.partyData && payloadValue.partyData.length > 0) {
         for (const party of payloadValue.partyData) {
@@ -698,7 +699,7 @@ const populatedTender = await getTenderById(updatedTender._id)
 
         // await sendNotification(tmId, existingTender._id!, notificationType, message);
 
-        res.status(200).json(updated);
+        res.status(200).json(populatedTender);
         return;
       }
     } catch (error) {
@@ -762,11 +763,12 @@ const populatedTender = await getTenderById(updatedTender._id)
       };
 
       const updated = await updateTender(new Tender(mergedTender));
+      const populatedTender = await getTenderById(updated._id);
       const io = getIO();
 
-      io.emit("tender:tendergotTo", updated);
+      io.emit("tender:tendergotTo", populatedTender);
 
-      res.status(200).json(updated);
+      res.status(200).json(populatedTender);
       return;
     } catch (error) {
       console.log("Error in Tender Got To", error);
@@ -848,11 +850,13 @@ const populatedTender = await getTenderById(updatedTender._id)
         existingTender._id
       );
 
+      const populatedTender = await getTenderById(updated._id);
+
       const io = getIO();
 
-      io.emit("tender:tenderAccepted", updated);
+      io.emit("tender:tenderAccepted", populatedTender);
 
-      res.status(200).json(updated);
+      res.status(200).json(populatedTender);
       return;
     } catch (error) {
       console.log("Error in Tender Accepted", error);
@@ -959,11 +963,13 @@ const populatedTender = await getTenderById(updatedTender._id)
       );
 
       const io = getIO();
-      io.emit("tender:TenderApprove", updatedTender);
+      const populatedTender = await getTenderById(updatedTender._id);
+
+      io.emit("tender:TenderApprove", populatedTender);
 
       res.status(200).json({
         message: "Tender approved by GM successfully and assigned back to TM.",
-        tender: updatedTender,
+        tender: populatedTender,
       });
       return;
     } catch (error) {
@@ -1079,10 +1085,11 @@ const populatedTender = await getTenderById(updatedTender._id)
         action,
         existingTender._id
       );
+      const populatedTender = await getTenderById(updated._id);
       const io = getIO();
-      io.emit("tender:tenderAcceptedByCM", updated);
+      io.emit("tender:tenderAcceptedByCM", populatedTender);
 
-      res.status(200).json(updated);
+      res.status(200).json(populatedTender);
       return;
     } catch (error) {
       console.log("Error in Tender Accepted By CM", error);
