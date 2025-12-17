@@ -17,6 +17,7 @@ import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
 import { sendNotification } from "../../helper/sendNotification";
 import { NotificationType } from "../../modules/notification/schema";
 import { getUser } from "../../modules/user";
+import { getIO } from "../../socket";
 
 export default class Controller {
   private readonly createWorkOrderSchema = Joi.object({
@@ -68,41 +69,17 @@ export default class Controller {
 
   private readonly updateWorkOrderSchema = Joi.object({
     tenderId: Joi.string().required().trim(),
-    title: Joi.string().trim().when("fileName", {
-      is: Joi.exist(),
-      then: Joi.optional(),
-      otherwise: Joi.required(),
-    }),
+    title: Joi.string().trim().optional(),
 
-    description: Joi.string().trim().when("fileName", {
-      is: Joi.exist(),
-      then: Joi.optional(),
-      otherwise: Joi.required(),
-    }),
+    description: Joi.string().trim().optional(),
 
-    quantity: Joi.number().when("fileName", {
-      is: Joi.exist(),
-      then: Joi.optional(),
-      otherwise: Joi.required(),
-    }),
+    quantity: Joi.number().optional(),
 
-    unit: Joi.string().when("fileName", {
-      is: Joi.exist(),
-      then: Joi.optional(),
-      otherwise: Joi.required(),
-    }),
+    unit: Joi.string().optional(),
 
-    amount: Joi.number().when("fileName", {
-      is: Joi.exist(),
-      then: Joi.required(),
-      otherwise: Joi.optional(),
-    }),
+    amount: Joi.number().optional(),
 
-    rate: Joi.number().when("fileName", {
-      is: Joi.exist(),
-      then: Joi.optional(),
-      otherwise: Joi.required(),
-    }),
+    rate: Joi.number().optional(),
     invoiceNumber: Joi.string().optional(),
 
     fileName: Joi.string().optional().trim(),
@@ -218,6 +195,9 @@ export default class Controller {
         `Tender Manager created this workOrder ${newWorkOrder.title || ""}`
       );
 
+      const io = getIO();
+      io.emit("workOrder:created", newWorkOrder);
+
       res.status(201).json(newWorkOrder);
       return;
     } catch (error) {
@@ -277,6 +257,10 @@ export default class Controller {
       const updated = await updateWorkOrder(
         new WorkOrder({ ...existingWorkOrder, ...payloadValue })
       );
+
+      const io = getIO();
+      io.emit("workOrder:updated", updated);
+
       res.status(200).json(updated);
       return;
     } catch (error) {
@@ -303,6 +287,9 @@ export default class Controller {
         res.status(404).json({ message: "WorkOrder not found" });
         return;
       }
+
+      const io = getIO();
+      io.emit("workOrder:deleted", workOrderId);
 
       await deleteWorkOrderById(workOrderId);
       res.status(200).json({ message: "WorkOrder deleted successfully" });
