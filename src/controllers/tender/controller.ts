@@ -580,6 +580,25 @@ export default class Controller {
       const io = getIO();
       const populatedTender = await getTenderById(updatedTender._id);
 
+      if (status === TenderStatus.CM_PENDING) {
+        if (updatedTender?.companyAssigned) {
+          io.to(updatedTender?.companyAssigned.toString()).emit(
+            "tender:tenderForCM",
+            populatedTender
+          );
+        }
+      }
+
+      if (status === TenderStatus.GM_PENDING) {
+        const gmUser = await getGM();
+        if (gmUser) {
+          io.to(gmUser._id.toString()).emit(
+            "tender:tenderForGM",
+            populatedTender
+          );
+        }
+      }
+
       io.emit("tender:updateTenderStatus", populatedTender);
       res.status(200).json({
         message: "Tender status updated successfully.",
