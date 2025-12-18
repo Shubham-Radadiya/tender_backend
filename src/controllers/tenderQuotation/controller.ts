@@ -318,7 +318,7 @@ export default class Controller {
       if (!tender) {
         return res.status(404).json({ message: "Tender not found." });
       }
-
+      tender.viewOtherStatus = true;
       tender.companyAssigned = companyAssigned;
       await tender.save();
 

@@ -28,7 +28,7 @@ export const getTenderById = async (_id: string) => {
       );
       return {
         ...rate,
-        itemDetail: itemDetail || null,
+        // itemDetail: itemDetail || null,
       };
     });
     return {
