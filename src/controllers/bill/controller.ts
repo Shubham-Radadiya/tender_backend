@@ -75,27 +75,27 @@ export default class Controller {
     }
   };
 
-  protected readonly getBillByTenderId = async (
+  protected readonly getBillByworkOrderId = async (
     req: Request,
     res: Response
   ) => {
     try {
       const authUser = req.authUser;
-      const tenderId = req.params.tenderId;
+      const workOrderId = req.params.workOrderId;
 
-      if (!tenderId) {
-        res.status(422).json({ message: "TenderId not found." });
+      if (!workOrderId) {
+        res.status(422).json({ message: "workOrderId not found." });
         return;
       }
-      const existingTender = await getTenderById(tenderId);
-      if (!existingTender) {
-        res.status(422).json({ message: "Invalid TenderId" });
+      const existingWorkOrder = await getWorkOrderById(workOrderId);
+      if (!existingWorkOrder) {
+        res.status(422).json({ message: "Invalid workOrderId" });
         return;
       }
 
       const billList = await getBillsByCompanyAndTenderId(
         authUser._id,
-        tenderId
+        workOrderId
       );
       res.status(200).json({ message: "Bill Listed", billList });
       return;

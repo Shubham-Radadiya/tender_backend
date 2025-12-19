@@ -41,7 +41,7 @@
   <script>
     const socket = io("http://localhost:5000", {
       auth: {
-        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTM2ZGNmNDQwOWQyNGEwODMxZjJhNjYiLCJpYXQiOjE3NjU4OTEzNTIsImV4cCI6MTc2NTk3Nzc1Mn0.1X8bwU6TMjzaUpBhQANoXhaMRzNwBgnEXm8MmCpyMhk"
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTM2ZGNmNDQwOWQyNGEwODMxZjJhNWQiLCJpYXQiOjE3NjU5OTE5NzcsImV4cCI6MTc2NjA3ODM3N30.rb3vZiRRTQ_FFqH5JH2Vn4XvzosXNA_UJ4tO2tiLIQw"
       },
       transports: ["polling", "websocket"],
       path: "/socket.io/"
@@ -113,6 +113,12 @@
 
     socket.on("tender:TenderApprove", (data) => {
       console.log("Tender Approved:", data);
+    });
+    socket.on("tender:tenderForCM", (data) => {
+      console.log("Tender tenderForCM:", data);
+    });
+    socket.on("tender:tenderForGM", (data) => {
+      console.log("Tender tenderForGM:", data);
     });
 
   </script>

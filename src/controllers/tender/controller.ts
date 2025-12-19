@@ -512,16 +512,16 @@ export default class Controller {
         }
       }
 
-      const gmData = await getGM();
-      const tenderData = await getTenderById(payloadValue.tenderId);
-      if (gmData && tenderData) {
-        await sendNotification(
-          gmData._id,
-          NotificationType.TENDER_CREATED,
-          `New tender ${tenderData.name} has been created and assigned to you`,
-          tenderData._id!
-        );
-      }
+      // const gmData = await getGM();
+      // const tenderData = await getTenderById(payloadValue.tenderId);
+      // if (gmData && tenderData) {
+      //   await sendNotification(
+      //     gmData._id,
+      //     NotificationType.TENDER_CREATED,
+      //     `New tender ${tenderData.name} has been created and assigned to you`,
+      //     tenderData._id!
+      //   );
+      // }
 
       const io = getIO();
       const populatedTender = await getTenderById(updatedTender._id);
@@ -590,9 +590,15 @@ export default class Controller {
       }
 
       if (status === TenderStatus.GM_PENDING) {
-        const gmUser = await getGM();
-        if (gmUser) {
-          io.to(gmUser._id.toString()).emit(
+        const gmData = await getGM();
+        if (gmData) {
+          await sendNotification(
+            gmData._id,
+            NotificationType.TENDER_CREATED,
+            `New tender ${existingTender.name} has been created and assigned to you`,
+            existingTender._id!
+          );
+          io.to(gmData._id.toString()).emit(
             "tender:tenderForGM",
             populatedTender
           );

@@ -28,7 +28,7 @@ export const getTenderById = async (_id: string) => {
       );
       return {
         ...rate,
-        itemDetail: itemDetail || null,
+        // itemDetail: itemDetail || null,
       };
     });
     return {
@@ -44,11 +44,11 @@ export const getTenderById = async (_id: string) => {
 };
 
 export const getTenderByCompany = async (companyAssigned: string) => {
-  // const statuses = [
-  //   TenderStatus.CM_ACCEPTED,
-  //   TenderStatus.CM_PENDING,
-  //   TenderStatus.CM_DECLINED,
-  // ];
+   const statuses = [
+    TenderStatus.CM_ACCEPTED,
+   TenderStatus.CM_PENDING,
+   TenderStatus.CM_DECLINED,
+   ];
   const tender = await TenderModel.find({
     companyAssigned,
     // status: { $in: statuses },

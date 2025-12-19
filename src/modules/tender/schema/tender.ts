@@ -66,6 +66,7 @@ const tender = new Schema<ITender>(
       default: TenderStatus.SELECT_STATUS,
     },
     workOrderStatus: { type: Boolean, default: false },
+    viewOtherStatus: { type: Boolean, default: false },
     juniorEngineerCount: { type: Number, default: 0 },
     // assignedTo: { type: Schema.Types.ObjectId, ref: "user" }, // Group Manager
     companyAssigned: { type: Schema.Types.ObjectId, ref: "user" }, // Company Manager
