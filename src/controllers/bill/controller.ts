@@ -180,19 +180,28 @@ export default class Controller {
       console.log("billAmount :", billAmount);
       console.log("totalBillAmount :", totalBillAmount);
       if (totalBillAmount + billAmount === totalAmount) {
+        const tender = await getTenderById(workOrderTender.tenderId.toString());
         const getTMData = await getTM();
         const getGMData = await getGM();
 
         await sendNotification(
           getTMData._id,
           NotificationType.payment_COMPLETED,
-          `Payment completed for tender ${workOrderTender.title || ""}`
+          `Payment completed for tender ${tender?.name || ""} ${
+            workOrderTender.title
+              ? `related to work order ${workOrderTender.title}`
+              : ""
+          }`
         );
 
         await sendNotification(
           getGMData._id,
           NotificationType.payment_COMPLETED,
-          `Payment completed for tender ${workOrderTender.title || ""}`
+          `Payment completed for tender ${tender?.name || ""} ${
+            workOrderTender.title
+              ? `related to work order ${workOrderTender.title}`
+              : ""
+          }`
         );
       }
 

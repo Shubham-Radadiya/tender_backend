@@ -13,6 +13,7 @@ export interface IWorkOrder {
   fileName?: string;
   amount?: number;
   invoiceNumber?: String;
+  originalFileName?: string;
 }
 
 export class WorkOrder implements IWorkOrder {
@@ -26,6 +27,7 @@ export class WorkOrder implements IWorkOrder {
   fileName?: string;
   amount?: number;
   invoiceNumber?: String;
+  originalFileName?: string;
 
   constructor(input: IWorkOrder) {
     this._id = input._id || new Types.ObjectId().toString();
@@ -36,6 +38,7 @@ export class WorkOrder implements IWorkOrder {
     this.unit = input.unit;
     this.rate = input.rate;
     this.fileName = input.fileName;
+    this.originalFileName = input.originalFileName;
     this.amount = input.amount;
     this.invoiceNumber = input.invoiceNumber;
   }
