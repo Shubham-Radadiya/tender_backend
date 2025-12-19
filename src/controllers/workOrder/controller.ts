@@ -59,6 +59,7 @@ export default class Controller {
     }),
 
     fileName: Joi.string().optional().trim(),
+    originalFileName: Joi.string().optional().trim(),
     invoiceNumber: Joi.string().optional(),
 
     createdAt: Joi.date()
@@ -83,6 +84,7 @@ export default class Controller {
     invoiceNumber: Joi.string().optional(),
 
     fileName: Joi.string().optional().trim(),
+    originalFileName: Joi.string().optional().trim(),
 
     updatedAt: Joi.date()
       .optional()
@@ -147,6 +149,7 @@ export default class Controller {
 
       if (req.file) {
         payload.fileName = `/uploads/${req.file.filename}`;
+        payload.originalFileName = req.file.originalname;
       }
 
       const payloadValue: IWorkOrder = await this.createWorkOrderSchema
@@ -219,6 +222,7 @@ export default class Controller {
       }
       if (req.file) {
         payload.fileName = `/uploads/${req.file.filename}`;
+        payload.originalFileName = req.file.originalname;
       }
 
       const payloadValue: IWorkOrder = await this.updateWorkOrderSchema
