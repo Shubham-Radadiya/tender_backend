@@ -386,6 +386,7 @@ export default class Controller {
             // rate: payloadValue.rate,
             // amount: payloadValue.amount,
             tender_notice_number: payloadValue.tender_notice_number,
+            isNoticeGenerated: true,
             tender_notice_date: payloadValue.tender_notice_date,
             due_date: payloadValue.due_date,
           },
@@ -457,7 +458,7 @@ export default class Controller {
       const updateQuery: any = {
         $set: {
           [`tenderNotice.days`]: payloadValue.days,
-          isNoticeGenerated: true,
+          // isNoticeGenerated: true,
           partyData: payloadValue.partyData,
         },
       };
