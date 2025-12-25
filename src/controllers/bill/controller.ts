@@ -168,17 +168,17 @@ export default class Controller {
         req.authUser._id,
         payload.workOrderId
       );
-      const totalBillAmount = amountData.reduce((sum, bill) => {
-        return sum + bill?.amount;
-      }, 0);
 
       const amount = Number(payloadValue.amount) || 0;
       const taxPercent = Number(payloadValue.taxPercent) || 0;
+      const round2 = (value: number): number => {
+        return Math.round((value + Number.EPSILON) * 100) / 100;
+      };
+      const totalBillAmount = round2(
+        amountData.reduce((sum, bill) => sum + (bill?.amount || 0), 0)
+      );
 
-      const billAmount = amount * (1 + taxPercent / 100);
-      console.log("amount :", payloadValue?.amount);
-      console.log("billAmount :", billAmount);
-      console.log("totalBillAmount :", totalBillAmount);
+      const billAmount = round2(amount * (1 + taxPercent / 100));
       if (totalBillAmount + billAmount === totalAmount) {
         const tender = await getTenderById(workOrderTender.tenderId.toString());
         const getTMData = await getTM();

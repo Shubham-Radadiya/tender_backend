@@ -286,7 +286,7 @@ export default class Controller {
         })
       );
       const updatedUser = await getUserById(userId);
-      res.status(200).json({ updated: updatedUser });
+      res.status(200).json({ updated: { ...updatedUser, isComplited: true } });
       return;
     } catch (error) {
       console.log("Error in updateUser", error);
