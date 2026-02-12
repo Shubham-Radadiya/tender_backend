@@ -41,7 +41,7 @@ export default class Controller {
         "TENDER_MANAGER",
         "GROUP_MANAGER",
         "COMPANY_MANAGER",
-        "BANK_MANAGER"
+        "BANK_MANAGER",
       )
       .required(),
     companyDetails: Joi.object({
@@ -58,16 +58,6 @@ export default class Controller {
       annualTenderCap: Joi.number(),
     }).optional(),
     managedCompanyManagers: Joi.array().items(Joi.string()).optional(),
-  }).custom((value, helpers) => {
-    if (
-      value.role === "COMPANY_MANAGER" &&
-      (!value.companyDetails || value.companyDetails.annualTenderCap == null)
-    ) {
-      return helpers.error("any.custom", {
-        message: `"annualTenderCap" is required inside companyDetails when role is COMPANY_MANAGER`,
-      });
-    }
-    return value;
   });
 
   private readonly updateUserSchema = Joi.object({
@@ -114,7 +104,7 @@ export default class Controller {
         userList.map(async (user) => ({
           ...user,
           isProfileComplete: await isUserProfileComplete(user),
-        }))
+        })),
       );
       res.status(200).json({ message: "User Listed", enrichedList });
       return;
@@ -137,7 +127,7 @@ export default class Controller {
           .map(async (user) => ({
             ...user,
             isProfileComplete: await isUserProfileComplete(user),
-          }))
+          })),
       );
       res.status(200).json({ message: "User Listed", users: enrichedList });
       return;
@@ -186,7 +176,7 @@ export default class Controller {
         console.log(userExistsOnParty);
         const plainParty = userExistsOnParty.toObject();
         await updateTenderParty(
-          new TenderParty({ ...plainParty, type: "user" })
+          new TenderParty({ ...plainParty, type: "user" }),
         );
       }
 
@@ -195,7 +185,7 @@ export default class Controller {
         Array.isArray(payloadValue.managedCompanyManagers)
       ) {
         const validManagers = await checkCompanyManagers(
-          payloadValue.managedCompanyManagers
+          payloadValue.managedCompanyManagers,
         );
 
         if (
@@ -222,7 +212,7 @@ export default class Controller {
       }
 
       const newUser = await createUser(
-        new User({ ...payloadValue, password: encryptedPassword, profile })
+        new User({ ...payloadValue, password: encryptedPassword, profile }),
       );
       res.status(201).json(newUser);
       return;
@@ -283,17 +273,15 @@ export default class Controller {
             ...existingUser.companyDetails,
             ...payloadValue.companyDetails,
           },
-        })
+        }),
       );
       const updatedUser = await getUserById(userId);
-      res
-        .status(200)
-        .json({
-          updated: {
-            ...updatedUser,
-            isProfileComplete: await isUserProfileComplete(updatedUser),
-          },
-        });
+      res.status(200).json({
+        updated: {
+          ...updatedUser,
+          isProfileComplete: await isUserProfileComplete(updatedUser),
+        },
+      });
       return;
     } catch (error) {
       console.log("Error in updateUser", error);
