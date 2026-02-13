@@ -30,6 +30,7 @@ export default class Controller {
   private readonly createTenderSchema = Joi.object({
     // tenderNo: Joi.string().required(),
     name: Joi.string().required(),
+    subject: Joi.string().required(),
     createdDate: Joi.date().required(),
     // lastDate: Joi.date().required(),
     category: Joi.string().required(),
@@ -47,7 +48,7 @@ export default class Controller {
           quantity: Joi.number().required(),
           unit: Joi.string().required(),
           parItemRate: Joi.number(),
-        })
+        }),
       )
       .required(),
   });
@@ -106,6 +107,7 @@ export default class Controller {
   private readonly updateTenderSchema = Joi.object({
     // tenderNo: Joi.string(),
     name: Joi.string(),
+    subject: Joi.string(),
     createdDate: Joi.date(),
     category: Joi.string(),
     department: Joi.string(),
@@ -117,7 +119,7 @@ export default class Controller {
         quantity: Joi.number().required(),
         unit: Joi.string().required(),
         parItemRate: Joi.number(),
-      })
+      }),
     ),
     partyData: Joi.array(),
   });
@@ -131,7 +133,7 @@ export default class Controller {
       .valid(
         TenderStatus.GM_ACCEPTED,
         TenderStatus.GM_DECLINED,
-        TenderStatus.GM_QUTATION_PENDING
+        TenderStatus.GM_QUTATION_PENDING,
       )
       .required(),
     declineReason: Joi.when("status", {
@@ -227,7 +229,7 @@ export default class Controller {
 
   protected readonly getTenderByStatus = async (
     req: Request,
-    res: Response
+    res: Response,
   ) => {
     try {
       const status = req.query.status;
@@ -295,7 +297,7 @@ export default class Controller {
               date: new Date(),
             },
           ],
-        })
+        }),
       );
       const io = getIO();
 
@@ -323,7 +325,7 @@ export default class Controller {
 
   protected readonly addTenderNotice = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const user = req.authUser;
@@ -412,7 +414,7 @@ export default class Controller {
 
   protected readonly addTenderNoticeDays = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const user = req.authUser;
@@ -471,13 +473,13 @@ export default class Controller {
           existingTender?.partyData?.map((p: any) => p.id?.toString()) || [];
 
         newParties = payloadValue.partyData.filter(
-          (p: any) => !existingPartyIds.includes(p.id?.toString())
+          (p: any) => !existingPartyIds.includes(p.id?.toString()),
         );
       }
       console.log("updateQuery :", updateQuery);
       const updatedTender = await updateTenderById(
         payloadValue.tenderId,
-        updateQuery
+        updateQuery,
       );
 
       if (Array.isArray(newParties) && newParties.length > 0) {
@@ -491,7 +493,7 @@ export default class Controller {
                 await sendNotification(
                   adminDetails?.[0]._id.toString(),
                   NotificationType.PARTY_NEEDS_USER,
-                  `Party ${partyDetails.email} has been added to tender ${updatedTender.name}. Please create a user for them.`
+                  `Party ${partyDetails.email} has been added to tender ${updatedTender.name}. Please create a user for them.`,
                 );
               }
 
@@ -541,7 +543,7 @@ export default class Controller {
 
   protected readonly updateTenderStatus = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const user = req.authUser;
@@ -585,7 +587,7 @@ export default class Controller {
         if (updatedTender?.companyAssigned) {
           io.to(updatedTender?.companyAssigned.toString()).emit(
             "tender:tenderForCM",
-            populatedTender
+            populatedTender,
           );
         }
       }
@@ -597,11 +599,11 @@ export default class Controller {
             gmData._id,
             NotificationType.TENDER_CREATED,
             `New tender ${existingTender.name} has been created and assigned to you`,
-            existingTender._id!
+            existingTender._id!,
           );
           io.to(gmData._id.toString()).emit(
             "tender:tenderForGM",
-            populatedTender
+            populatedTender,
           );
         }
       }
@@ -619,7 +621,7 @@ export default class Controller {
 
   protected readonly updateTender = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const tenderId = req.params.id;
@@ -663,7 +665,7 @@ export default class Controller {
             // check if already exists in tender's partyData
             const alreadyExists = existingTender.partyData?.some(
               (p) =>
-                p.id.toString() === party.id.toString() && p.type === "party"
+                p.id.toString() === party.id.toString() && p.type === "party",
             );
 
             if (!alreadyExists) {
@@ -672,7 +674,7 @@ export default class Controller {
                 await sendNotification(
                   adminDetails?.[0]._id.toString(),
                   NotificationType.PARTY_NEEDS_USER,
-                  `Party ${partyUser.email} has been added to tender ${updated.name}. Please create a user for them.`
+                  `Party ${partyUser.email} has been added to tender ${updated.name}. Please create a user for them.`,
                 );
 
                 // 2. Send Email
@@ -766,7 +768,7 @@ export default class Controller {
         return;
       }
       const companyDetails = await getUserById(
-        payloadValue?.companyAssigned.toString()
+        payloadValue?.companyAssigned.toString(),
       );
       const mergedTender = {
         ...existingTender,
@@ -866,7 +868,7 @@ export default class Controller {
         getTMData._id,
         notificationType,
         action,
-        existingTender._id
+        existingTender._id,
       );
 
       const populatedTender = await getTenderById(updated._id);
@@ -969,7 +971,7 @@ export default class Controller {
               date: new Date(),
             },
           ],
-        })
+        }),
       );
       // company ${companyDetails.firstName} ${companyDetails.lastName}
 
@@ -978,7 +980,7 @@ export default class Controller {
         getTMData._id,
         NotificationType.TENDER_APPROVED,
         `Tender approved by the group manager and assigned back to you.`,
-        existingTender._id
+        existingTender._id,
       );
 
       const io = getIO();
@@ -1022,7 +1024,7 @@ export default class Controller {
         tenderDetails.companyAssigned,
         NotificationType.TENDER_APPROVED_BY_TM,
         `New Tender ${tenderDetails.name} has been created and assigned to you`,
-        tenderDetails._id
+        tenderDetails._id,
       );
     } catch (error) {
       console.log("Error in assignTenderToCM", error);
@@ -1033,7 +1035,7 @@ export default class Controller {
 
   protected readonly tenderAcceptedByCM = async (
     req: Request,
-    res: Response
+    res: Response,
   ) => {
     try {
       const authUser = req.authUser;
@@ -1102,7 +1104,7 @@ export default class Controller {
         getTMData._id,
         notificationType,
         action,
-        existingTender._id
+        existingTender._id,
       );
       const populatedTender = await getTenderById(updated._id);
       const io = getIO();
@@ -1118,7 +1120,7 @@ export default class Controller {
   };
   protected readonly getTenderPartyData = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const tenderId = req.params.id;
@@ -1143,7 +1145,7 @@ export default class Controller {
         UserModel.find({ _id: { $in: userIds } }, "name email address").lean(),
         TenderPartyModel.find(
           { _id: { $in: partyIds } },
-          "name email address"
+          "name email address",
         ).lean(),
       ]);
 

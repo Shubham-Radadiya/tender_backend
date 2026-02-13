@@ -29,6 +29,7 @@ const tender = new Schema<ITender>(
     // tenderNo: { type: String },
     srNo: { type: String, default: null },
     name: { type: String },
+    subject: { type: String },
     tenderType: { type: String, default: "GEM" },
     createdDate: { type: Date },
     // lastDate: { type: Date },
@@ -86,7 +87,7 @@ const tender = new Schema<ITender>(
     ],
     declineReason: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const TenderModel = model<ITender>("tender", tender);
