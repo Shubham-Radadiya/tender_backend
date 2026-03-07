@@ -28,6 +28,7 @@ export interface ITenderQuotation {
     panNo: string;
     gstNo: string;
     termsAndConditions: string[];
+    quotationCreateDate?: Date;
   };
   createdAt?: Date;
   updatedAt?: Date;
@@ -54,6 +55,7 @@ export class TenderQuotation implements ITenderQuotation {
     panNo: string;
     gstNo: string;
     termsAndConditions: string[];
+    quotationCreateDate?: Date;
   };
   date?: Date;
   receipt?: string;
@@ -96,6 +98,8 @@ export class TenderQuotation implements ITenderQuotation {
       panNo: "",
       gstNo: "",
       termsAndConditions: [],
+      quotationCreateDate:
+        input.personalDetails?.quotationCreateDate || new Date(),
     };
     this.form = input.form;
     this.to = input.to;

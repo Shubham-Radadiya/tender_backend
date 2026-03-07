@@ -62,13 +62,14 @@ const tenderQuotation = new Schema<ITenderQuotation>(
       location: { type: String },
       panNo: { type: String },
       gstNo: { type: String },
+      quotationCreateDate: { type: Date },
       termsAndConditions: [{ type: String }],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const TenderQuotationModel = model<ITenderQuotation>(
   "tenderQuotation",
-  tenderQuotation
+  tenderQuotation,
 );

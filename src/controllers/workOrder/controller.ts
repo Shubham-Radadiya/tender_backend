@@ -62,6 +62,9 @@ export default class Controller {
     originalFileName: Joi.string().optional().trim(),
     invoiceNumber: Joi.string().optional(),
 
+    dueDate: Joi.date().optional(),
+    workOrderNumber: Joi.string().optional(),
+
     createdAt: Joi.date()
       .optional()
       .default(() => new Date()),
@@ -85,6 +88,9 @@ export default class Controller {
 
     fileName: Joi.string().optional().trim(),
     originalFileName: Joi.string().optional().trim(),
+
+    dueDate: Joi.date().optional(),
+    workOrderNumber: Joi.string().optional(),
 
     updatedAt: Joi.date()
       .optional()

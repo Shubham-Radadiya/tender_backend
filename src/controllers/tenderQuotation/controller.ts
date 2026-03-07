@@ -36,7 +36,7 @@ export default class Controller {
             itemId: Joi.string().required(),
             rate: Joi.number().required(),
             amount: Joi.number().optional(),
-          })
+          }),
         )
         .required(),
       termsAndConditions: Joi.string().optional(),
@@ -44,7 +44,7 @@ export default class Controller {
       to: Joi.string().optional(),
       refOne: Joi.string().optional(),
       refTwo: Joi.string().optional(),
-    })
+    }),
   );
 
   private readonly updateTenderQuotationSchema = Joi.object({
@@ -62,7 +62,7 @@ export default class Controller {
           itemId: Joi.string().optional(),
           rate: Joi.number().optional(),
           amount: Joi.number().optional(),
-        })
+        }),
       )
       .optional(),
   });
@@ -76,12 +76,13 @@ export default class Controller {
       panNo: Joi.string().optional(),
       gstNo: Joi.string().optional(),
       termsAndConditions: Joi.array().items(Joi.string()).optional(),
+      quotationCreateDate: Joi.date().optional(),
     }).optional(),
   });
 
   protected readonly createTenderQuotation = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const authUser = req.authUser;
@@ -109,7 +110,7 @@ export default class Controller {
 
       const validatedQuotations: ITenderQuotation[] =
         await this.createMultipleTenderQuotationSchema.validateAsync(
-          quotations
+          quotations,
         );
 
       const tenderId = validatedQuotations[0].tenderId;
@@ -150,15 +151,15 @@ export default class Controller {
       }
 
       const assignedCompanyQuotations = validatedQuotations.filter(
-        (q) => q.companyId?.toString() === companyAssigned.toString()
+        (q) => q.companyId?.toString() === companyAssigned.toString(),
       );
 
       if (assignedCompanyQuotations.length > 0) {
         const maxExistingAmount = Math.max(
           ...assignedCompanyQuotations.map(
             (q) =>
-              q.itemRates?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0
-          )
+              q.itemRates?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0,
+          ),
         );
 
         for (const q of validatedQuotations) {
@@ -175,7 +176,7 @@ export default class Controller {
 
       for (const q of validatedQuotations) {
         const created = await createTenderQuotation(
-          new TenderQuotation({ ...q })
+          new TenderQuotation({ ...q }),
         );
         const populated = await getPopulatedTenderQuotationById(created._id);
         if (populated?.quotationId) {
@@ -199,7 +200,7 @@ export default class Controller {
 
   protected readonly updateTenderQuotations = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const authUser = req.authUser;
@@ -228,14 +229,13 @@ export default class Controller {
 
       const validatedPayloads: Partial<ITenderQuotation>[] = [];
       for (const quotation of quotationPayloads) {
-        const validated = await this.updateTenderQuotationSchema.validateAsync(
-          quotation
-        );
+        const validated =
+          await this.updateTenderQuotationSchema.validateAsync(quotation);
         validatedPayloads.push(validated);
       }
 
       const assignedCompanyQuotations = validatedPayloads.filter(
-        (q) => q.companyId?.toString() === companyAssigned.toString()
+        (q) => q.companyId?.toString() === companyAssigned.toString(),
       );
       if (assignedCompanyQuotations.length > 0) {
         const winningQuotation = assignedCompanyQuotations.reduce(
@@ -243,21 +243,21 @@ export default class Controller {
             const currTotal =
               curr.itemRates?.reduce(
                 (sum, item) => sum + (item.amount || 0),
-                0
+                0,
               ) || 0;
             const maxTotal =
               max.itemRates?.reduce(
                 (sum, item) => sum + (item.amount || 0),
-                0
+                0,
               ) || 0;
             return currTotal > maxTotal ? curr : max;
-          }
+          },
         );
 
         const winningTotal =
           winningQuotation.itemRates?.reduce(
             (sum, item) => sum + (item.amount || 0),
-            0
+            0,
           ) || 0;
 
         for (const q of validatedPayloads) {
@@ -268,7 +268,7 @@ export default class Controller {
             "qTotal < winningTotal",
             qTotal < winningTotal,
             qTotal,
-            winningTotal
+            winningTotal,
           );
           if (qTotal < winningTotal) {
             return res.status(422).json({
@@ -308,7 +308,7 @@ export default class Controller {
         };
 
         const updated = await updateTenderQuotation(
-          new TenderQuotation(mergedQuotation)
+          new TenderQuotation(mergedQuotation),
         );
         const populated = await getPopulatedTenderQuotationById(updated._id);
         updatedQuotations.push(populated);
@@ -334,14 +334,13 @@ export default class Controller {
 
   protected readonly deleteTenderQuotation = async (
     req: Request,
-    res: Response
+    res: Response,
   ) => {
     try {
       const tenderQuotationId = req.params.id;
 
-      const existingTenderQuotation = await getTenderQuotationById(
-        tenderQuotationId
-      );
+      const existingTenderQuotation =
+        await getTenderQuotationById(tenderQuotationId);
       if (!existingTenderQuotation) {
         res.status(404).json({ message: "Tender Quotation not found" });
         return;
@@ -360,7 +359,7 @@ export default class Controller {
   };
   protected readonly updatePersonalDetails = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       console.log("🚀 ~ Controller ~ req.body:", req.body);
@@ -385,11 +384,11 @@ export default class Controller {
         ...existingQuotation.personalDetails,
         ...payload.personalDetails,
       };
+      console.log("existingQuotation :", existingQuotation);
 
       const updated = await updateTenderQuotation(
-        new TenderQuotation(existingQuotation)
+        new TenderQuotation(existingQuotation),
       );
-      console.log("updated", updated);
 
       return res.status(200).json({
         message: "Personal details updated successfully",
@@ -403,7 +402,7 @@ export default class Controller {
 
   protected readonly getQuotationPersonalDetails = async (
     req: Request,
-    res: Response
+    res: Response,
   ): Promise<any> => {
     try {
       const quotationId = req.params.id;

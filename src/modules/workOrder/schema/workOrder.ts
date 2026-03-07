@@ -3,7 +3,7 @@ import { IWorkOrder } from "../types";
 
 const workOrder = new Schema<IWorkOrder>(
   {
-    tenderId: { type: Schema.Types.ObjectId, ref: "Tender" },
+    tenderId: { type: Schema.Types.ObjectId, ref: "tender" },
     title: {
       type: String,
     },
@@ -31,10 +31,16 @@ const workOrder = new Schema<IWorkOrder>(
     invoiceNumber: {
       type: String,
     },
+    dueDate: {
+      type: Date,
+    },
+    workOrderNumber: {
+      type: String,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const WorkOrderModel = model<IWorkOrder>("workOrder", workOrder);
