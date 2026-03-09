@@ -123,7 +123,7 @@ export default class Controller {
 
   protected readonly getWorkOrderByTenderId = async (
     req: Request,
-    res: Response
+    res: Response,
   ) => {
     try {
       const tenderId = req.params.tenderId;
@@ -151,6 +151,7 @@ export default class Controller {
       const user = req.authUser;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
+        return;
       }
 
       if (req.file) {
@@ -191,17 +192,17 @@ export default class Controller {
       } else {
         invoiceNumber = await generateInvoiceNumber(
           user,
-          payloadValue?.tenderId.toString()
+          payloadValue?.tenderId.toString(),
         );
       }
       const newWorkOrder = await createWorkOrder(
-        new WorkOrder({ ...payloadValue, invoiceNumber })
+        new WorkOrder({ ...payloadValue, invoiceNumber }),
       );
       const bankManagerDetails = await getUser(UserRole.BANK_MANAGER);
       await sendNotification(
         bankManagerDetails?.[0]._id.toString(),
         NotificationType.WorkOrder_CREATED,
-        `Tender Manager created this workOrder ${newWorkOrder.title || ""}`
+        `Tender Manager created this workOrder ${newWorkOrder.title || ""}`,
       );
 
       const io = getIO();
@@ -225,6 +226,7 @@ export default class Controller {
       const payload = req.body;
       if (!payload) {
         res.status(422).json({ message: "Invalid request body" });
+        return;
       }
       if (req.file) {
         payload.fileName = `/uploads/${req.file.filename}`;
@@ -264,8 +266,14 @@ export default class Controller {
         return;
       }
 
+      const existingData = existingWorkOrder.toObject();
+      existingData.tenderId =
+        typeof existingWorkOrder.tenderId === "object"
+          ? existingWorkOrder.tenderId._id
+          : existingWorkOrder.tenderId;
+
       const updated = await updateWorkOrder(
-        new WorkOrder({ ...existingWorkOrder, ...payloadValue })
+        new WorkOrder({ ...existingData, ...payloadValue }),
       );
 
       const io = getIO();

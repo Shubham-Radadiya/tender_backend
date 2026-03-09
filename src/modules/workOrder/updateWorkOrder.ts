@@ -7,6 +7,14 @@ import { WorkOrderModel } from "./schema";
  * @returns update WorkOrder record
  */
 export const updateWorkOrder = async (workOrder: WorkOrder) => {
-  await WorkOrderModel.findByIdAndUpdate(workOrder._id, workOrder.toJSON());
-  return workOrder;
+  console.log("workOrder :", workOrder);
+  const updateData = workOrder.toJSON();
+  delete updateData._id;
+  const updated = await WorkOrderModel.findByIdAndUpdate(
+    workOrder._id,
+    updateData,
+    { new: true },
+  );
+  console.log("updated :", updated);
+  return updated;
 };
