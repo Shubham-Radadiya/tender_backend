@@ -16,6 +16,7 @@ export interface IWorkOrder {
   originalFileName?: string;
   dueDate?: Date;
   workOrderNumber?: string;
+  workOrderCreateDate?: Date;
   createdAt: Date;
   updatedAt: Date;  departmentName?: string;
   companyName?: string;}
@@ -34,6 +35,7 @@ export class WorkOrder implements IWorkOrder {
   originalFileName?: string;
   dueDate?: Date;
   workOrderNumber?: string;
+  workOrderCreateDate?: Date;
   createdAt: Date;
   updatedAt: Date;  departmentName?: string;
   companyName?: string;
@@ -51,6 +53,7 @@ export class WorkOrder implements IWorkOrder {
     this.invoiceNumber = input.invoiceNumber;
     this.dueDate = input.dueDate;
     this.workOrderNumber = input.workOrderNumber;
+    this.workOrderCreateDate = input.workOrderCreateDate;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
     this.departmentName = input.departmentName;

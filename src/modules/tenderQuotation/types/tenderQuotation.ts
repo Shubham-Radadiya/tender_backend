@@ -21,6 +21,7 @@ export interface ITenderQuotation {
   receipt?: string;
   fee?: number;
   itemRates: IItemRate[];
+  quotationCreateDate?: Date;
   personalDetails: {
     refNo: string;
     departmentName: string;
@@ -28,7 +29,6 @@ export interface ITenderQuotation {
     panNo: string;
     gstNo: string;
     termsAndConditions: string[];
-    quotationCreateDate?: Date;
   };
   createdAt?: Date;
   updatedAt?: Date;
@@ -48,6 +48,7 @@ export class TenderQuotation implements ITenderQuotation {
   tenderFee: number;
   emd: number;
   itemRates: IItemRate[];
+  quotationCreateDate?: Date;
   personalDetails: {
     refNo: string;
     departmentName: string;
@@ -55,7 +56,6 @@ export class TenderQuotation implements ITenderQuotation {
     panNo: string;
     gstNo: string;
     termsAndConditions: string[];
-    quotationCreateDate?: Date;
   };
   date?: Date;
   receipt?: string;
@@ -88,6 +88,7 @@ export class TenderQuotation implements ITenderQuotation {
       rate: item.rate,
       amount: item.amount,
     }));
+    this.quotationCreateDate = input.quotationCreateDate;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
     this.termsAndConditions = input.termsAndConditions;
@@ -98,8 +99,6 @@ export class TenderQuotation implements ITenderQuotation {
       panNo: "",
       gstNo: "",
       termsAndConditions: [],
-      quotationCreateDate:
-        input.personalDetails?.quotationCreateDate || new Date(),
     };
     this.form = input.form;
     this.to = input.to;

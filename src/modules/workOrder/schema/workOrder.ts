@@ -37,6 +37,9 @@ const workOrder = new Schema<IWorkOrder>(
     workOrderNumber: {
       type: String,
     },
+    workOrderCreateDate: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

@@ -64,6 +64,7 @@ export default class Controller {
 
     dueDate: Joi.date().optional(),
     workOrderNumber: Joi.string().optional(),
+    workOrderCreateDate: Joi.date().optional().default(() => new Date()),
 
     createdAt: Joi.date()
       .optional()

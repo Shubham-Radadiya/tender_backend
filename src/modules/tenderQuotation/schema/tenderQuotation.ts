@@ -56,13 +56,15 @@ const tenderQuotation = new Schema<ITenderQuotation>(
         amount: Number,
       },
     ],
+    quotationCreateDate: {
+      type: Date,
+    },
     personalDetails: {
       refNo: { type: String },
       departmentName: { type: String },
       location: { type: String },
       panNo: { type: String },
       gstNo: { type: String },
-      quotationCreateDate: { type: Date },
       termsAndConditions: [{ type: String }],
     },
   },

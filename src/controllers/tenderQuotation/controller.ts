@@ -44,6 +44,7 @@ export default class Controller {
       to: Joi.string().optional(),
       refOne: Joi.string().optional(),
       refTwo: Joi.string().optional(),
+      quotationCreateDate: Joi.date().optional().default(() => new Date()),
     }),
   );
 
@@ -76,7 +77,6 @@ export default class Controller {
       panNo: Joi.string().optional(),
       gstNo: Joi.string().optional(),
       termsAndConditions: Joi.array().items(Joi.string()).optional(),
-      quotationCreateDate: Joi.date().optional(),
     }).optional(),
   });
 
