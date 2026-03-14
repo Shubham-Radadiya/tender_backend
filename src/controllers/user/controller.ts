@@ -44,19 +44,7 @@ export default class Controller {
         "BANK_MANAGER",
       )
       .required(),
-    companyDetails: Joi.object({
-      companyName: Joi.string(),
-      businessEmail: Joi.string().email(),
-      aadharNumber: Joi.string(),
-      panNumber: Joi.string(),
-      userName: Joi.string(),
-      companyPhone: Joi.string(),
-      gstUsername: Joi.string(),
-      gstNumber: Joi.string(),
-      ifscCode: Joi.string(),
-      website: Joi.string(),
-      annualTenderCap: Joi.number(),
-    }).optional(),
+    companyDetails: Joi.object().optional(),
     managedCompanyManagers: Joi.array().items(Joi.string()).optional(),
   });
 
@@ -70,20 +58,7 @@ export default class Controller {
     password: Joi.string().min(6).optional(),
     phoneNumber: Joi.string().optional(),
     profile: Joi.string().optional(),
-    companyDetails: Joi.object({
-      companyName: Joi.string().optional(),
-      businessEmail: Joi.string().email().optional(),
-      aadharNumber: Joi.string().optional(),
-      panNumber: Joi.string().optional(),
-      userName: Joi.string().optional(),
-      companyPhone: Joi.string().optional(),
-      gstUsername: Joi.string().optional(),
-      gstNumber: Joi.string().optional(),
-      ifscCode: Joi.string().optional(),
-      website: Joi.string().optional(),
-      annualTenderCap: Joi.number().optional(),
-      adminApprove: Joi.boolean().optional(),
-    }).optional(),
+    companyDetails: Joi.object().optional(),
   });
 
   protected readonly get = async (req: Request, res: Response) => {
