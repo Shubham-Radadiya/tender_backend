@@ -180,7 +180,9 @@ export default class Controller {
 
       const billAmount = round2(amount * (1 + taxPercent / 100));
       if (totalBillAmount + billAmount === totalAmount) {
-        const tender = await getTenderById(workOrderTender.tenderId.toString());
+        // This handles both cases: if tenderId is a string OR if it is a populated object
+        const tenderId = workOrderTender.tenderId._id ? workOrderTender.tenderId._id.toString()  : workOrderTender.tenderId.toString();
+        const tender = await getTenderById(tenderId);
         const getTMData = await getTM();
         const getGMData = await getGM();
 
