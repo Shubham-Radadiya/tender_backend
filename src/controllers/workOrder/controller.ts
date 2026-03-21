@@ -89,7 +89,7 @@ export default class Controller {
 
     fileName: Joi.string().optional().trim(),
     originalFileName: Joi.string().optional().trim(),
-
+    workOrderCreateDate: Joi.date().optional(),
     dueDate: Joi.date().optional(),
     workOrderNumber: Joi.string().optional(),
 

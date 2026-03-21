@@ -6,7 +6,7 @@ export const getTenderParty = async () => {
   const [users, parties] = await Promise.all([
     UserModel.find(
       { role: UserRole.COMPANY_MANAGER },
-      { firstName: 1, email: 1, address: 1 }
+      { firstName: 1, lastName: 1, email: 1, address: 1 }
     ).lean(),
     TenderPartyModel.find(
       { type: "party" },
@@ -16,7 +16,7 @@ export const getTenderParty = async () => {
 
   const userList = users.map((user) => ({
     _id: user._id.toString(),
-    name: user.firstName,
+    name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
     email: user.email,
     address: user.address,
     type: "user",

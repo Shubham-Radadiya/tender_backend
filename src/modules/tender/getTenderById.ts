@@ -22,13 +22,13 @@ export const getTenderById = async (_id: string) => {
     .lean();
 
   const enrichedQuotations = quotations.map((quotation) => {
-    const enrichedItemRates = quotation.itemRates.map((rate) => {
+    const enrichedItemRates = quotation.itemRates.map((rate, index) => {
       const itemDetail = tender.items.find(
-        (item: any) => item._id.toString() === rate.itemId.toString()
-      );
+        (item: any) => rate.itemId && item._id.toString() === rate.itemId.toString()
+      ) || tender.items[index];
       return {
         ...rate,
-        // itemDetail: itemDetail || null,
+        itemDetail: itemDetail || null,
       };
     });
     return {

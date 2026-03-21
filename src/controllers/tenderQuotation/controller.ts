@@ -54,9 +54,9 @@ export default class Controller {
     quotationNumber: Joi.number().optional(),
     tenderFee: Joi.number().optional(),
     emd: Joi.number().optional(),
-    date: Joi.date().optional(),
-    receipt: Joi.string().optional(),
-    fee: Joi.number().optional(),
+    date: Joi.date().optional().allow(null, ""),
+    receipt: Joi.string().optional().allow(null, ""),
+    fee: Joi.number().optional().allow(null, 0, ""),
     itemRates: Joi.array()
       .items(
         Joi.object({
