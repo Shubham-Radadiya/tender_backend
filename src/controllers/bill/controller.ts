@@ -29,6 +29,8 @@ export default class Controller {
     workOrderId: Joi.string().required(),
     amount: Joi.number().required(),
     taxPercent: Joi.number().required(),
+    tdsPercent: Joi.number().optional().allow(null, ""),
+    labourPercent: Joi.number().optional().allow(null, ""),
     // additionalCharges: Joi.number().required(),
     invoiceNumber: Joi.string().optional(),
     address: Joi.string().optional(),
@@ -42,6 +44,8 @@ export default class Controller {
     workOrderId: Joi.string().optional(),
     // amount: Joi.number().optional(),
     taxPercent: Joi.number().optional(),
+    tdsPercent: Joi.number().optional().allow(null, ""),
+    labourPercent: Joi.number().optional().allow(null, ""),
     // additionalCharges: Joi.number().optional(),
     total: Joi.number().optional(),
     invoiceNumber: Joi.string().optional(),
@@ -171,6 +175,8 @@ export default class Controller {
 
       const amount = Number(payloadValue.amount) || 0;
       const taxPercent = Number(payloadValue.taxPercent) || 0;
+      const tdsPercent = Number(payloadValue.tdsPercent) || 0;
+      const labourPercent = Number(payloadValue.labourPercent) || 0;
       const round2 = (value: number): number => {
         return Math.round((value + Number.EPSILON) * 100) / 100;
       };
@@ -178,7 +184,7 @@ export default class Controller {
         amountData.reduce((sum, bill) => sum + (bill?.amount || 0), 0)
       );
 
-      const billAmount = round2(amount * (1 + taxPercent / 100));
+      const billAmount = round2(amount * (1 + taxPercent / 100 + tdsPercent / 100 + labourPercent / 100));
       if (totalBillAmount + billAmount === totalAmount) {
         // This handles both cases: if tenderId is a string OR if it is a populated object
         const tenderId = workOrderTender.tenderId._id ? workOrderTender.tenderId._id.toString()  : workOrderTender.tenderId.toString();

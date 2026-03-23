@@ -12,6 +12,8 @@ const bill = new Schema<IBill>(
     workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
     amount: { type: Number },
     taxPercent: { type: Number },
+    tdsPercent: { type: Number, default: 0 },
+    labourPercent: { type: Number, default: 0 },
     additionalCharges: { type: Number },
     total: { type: Number },
     invoiceNumber: { type: String },

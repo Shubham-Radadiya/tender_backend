@@ -10,6 +10,8 @@ export interface IBill {
   workOrderId: string | ITender;
   amount: number;
   taxPercent: number;
+  tdsPercent: number;
+  labourPercent: number;
   additionalCharges: number;
   total: number;
   invoiceNumber: string;
@@ -27,6 +29,8 @@ export class Bill implements IBill {
   workOrderId: string;
   amount: number;
   taxPercent: number;
+  tdsPercent: number;
+  labourPercent: number;
   additionalCharges: number;
   total: number;
   invoiceNumber: string;
@@ -50,7 +54,9 @@ export class Bill implements IBill {
         ? input.workOrderId
         : input.workOrderId._id;
     this.amount = input.amount;
-    this.taxPercent = input.taxPercent;
+    this.taxPercent = input.taxPercent || 0;
+    this.tdsPercent = input.tdsPercent || 0;
+    this.labourPercent = input.labourPercent || 0;
     this.additionalCharges = input.additionalCharges;
     this.total = input.total;
     this.invoiceNumber = input.invoiceNumber;
