@@ -9,7 +9,7 @@ import { TenderQuotationModel } from "./schema";
 export const getTenderQuotationsByTenderId = async (tenderId: string) => {
   const quotations = await TenderQuotationModel.find({ tenderId })
     .populate({
-      path: 'tenderId', select: 'tenderNo name tenderType lastDate category department nameOfWork providedBy items status',
+      path: 'tenderId', select: 'tenderNo tenderType lastDate category department nameOfWork providedBy items status',
       populate: [{ path: 'category', select: 'name' }, { path: 'department', select: 'name' }]
     })
     .populate({ path: "companyId", select: 'firstName lastName email phoneNumber profile companyDetails' })
@@ -25,7 +25,7 @@ export const getTenderQuotationsByTenderId = async (tenderId: string) => {
 export const getTenderQuotationByTenderId = async (tenderId: string) => {
   const quotation = await TenderQuotationModel.findOne({ tenderId })
     .populate({
-      path: 'tenderId', select: 'tenderNo name tenderType lastDate category department nameOfWork providedBy items status',
+      path: 'tenderId', select: 'tenderNo tenderType lastDate category department nameOfWork providedBy items status',
       populate: [{ path: 'category', select: 'name' }, { path: 'department', select: 'name' }]
     })
     .populate({ path: "companyId", select: 'firstName lastName email phoneNumber profile companyDetails' })

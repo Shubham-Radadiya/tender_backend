@@ -1,5 +1,6 @@
 import { Tender } from ".";
 import { TenderModel } from "./schema";
+import { stripTenderName } from "./stripTenderName";
 
 /**
  * Create a new tender record
@@ -7,6 +8,6 @@ import { TenderModel } from "./schema";
  * @returns Created tender
  */
 export const createTender = async (tender: Tender) => {
-  const newTender = await TenderModel.create(tender.toJSON());
+  const newTender = await TenderModel.create(stripTenderName(tender.toJSON()));
   return new Tender(newTender.toObject());
 };

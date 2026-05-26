@@ -1,5 +1,6 @@
 import { TenderModel } from "./schema";
 import { ITender } from "./types";
+import { stripTenderName } from "./stripTenderName";
 
 /**
  * Update a Tender document by ID
@@ -9,9 +10,13 @@ import { ITender } from "./types";
  */
 export const updateTenderById = async (id: string, updateData: any) => {
   try {
-    const updatedTender = await TenderModel.findByIdAndUpdate(id, updateData, {
+    const updatedTender = await TenderModel.findByIdAndUpdate(
+      id,
+      stripTenderName(updateData),
+      {
       new: true,
-    });
+    },
+    );
 
     return updatedTender;
   } catch (error) {

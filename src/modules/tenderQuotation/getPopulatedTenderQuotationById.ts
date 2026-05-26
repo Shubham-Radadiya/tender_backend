@@ -9,7 +9,7 @@ import { TenderQuotationModel } from "./schema";
 export const getPopulatedTenderQuotationById = async (_id: string) => {
   const tenderQuotation = await TenderQuotationModel.findById(_id)
     .populate({
-      path: 'tenderId', select: 'tenderNo name tenderType lastDate category department nameOfWork providedBy items status',
+      path: 'tenderId', select: 'tenderNo tenderType lastDate category department nameOfWork providedBy items status',
       populate: [{ path: 'category', select: 'name' }, { path: 'department', select: 'name' }]
     })
     .populate({ path: "companyId", select: 'firstName lastName email phoneNumber profile companyDetails' })

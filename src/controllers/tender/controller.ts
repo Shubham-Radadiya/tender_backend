@@ -29,7 +29,6 @@ import { getIO } from "../../socket";
 export default class Controller {
   private readonly createTenderSchema = Joi.object({
     // tenderNo: Joi.string().required(),
-    name: Joi.string().required(),
     subject: Joi.string().required(),
     createdDate: Joi.date().required(),
     // lastDate: Joi.date().required(),
@@ -37,7 +36,7 @@ export default class Controller {
     department: Joi.string().required(),
     isNoticeGenerated: Joi.boolean().default(false),
     nameOfWork: Joi.string().required(),
-    providedBy: Joi.string().required(),
+    providedBy: Joi.string().optional().allow("", null).empty(""),
     status: Joi.string()
       .valid(...Object.values(TenderStatus))
       .default(TenderStatus.SELECT_STATUS),
@@ -56,9 +55,9 @@ export default class Controller {
   private readonly addTenderNoticeSchema = Joi.object({
     // type: Joi.string().valid("manual", "upload").required(),
     tenderId: Joi.string().required(),
-    tender_notice_number: Joi.string().required(),
-    tender_notice_date: Joi.date().required(),
-    due_date: Joi.date().required(),
+    tender_notice_number: Joi.string().optional(),
+    tender_notice_date: Joi.date().optional(),
+    due_date: Joi.date().optional(),
     fileName: Joi.string().required(),
     // fileName: Joi.when("type", {
     //   is: "upload",
@@ -94,6 +93,9 @@ export default class Controller {
   private readonly addTenderNoticeDaysSchema = Joi.object({
     tenderId: Joi.string().required(),
     days: Joi.number().required(),
+    tender_notice_number: Joi.string().required(),
+    tender_notice_date: Joi.date().required(),
+    due_date: Joi.date().required(),
     partyData: Joi.array(),
   });
 
@@ -106,7 +108,6 @@ export default class Controller {
 
   private readonly updateTenderSchema = Joi.object({
     // tenderNo: Joi.string(),
-    name: Joi.string(),
     subject: Joi.string(),
     createdDate: Joi.date(),
     category: Joi.string(),
@@ -258,7 +259,7 @@ export default class Controller {
         return;
       }
       const payloadValue: ITender = await this.createTenderSchema
-        .validateAsync(payload)
+        .validateAsync(payload, { stripUnknown: true })
         .then((value) => {
           return value;
         })
@@ -292,7 +293,7 @@ export default class Controller {
           createdBy: user._id,
           history: [
             {
-              action: `Tender manager created tender '${payloadValue.name}' and assigned it to the Group Manager`,
+              action: `Tender manager created tender '${payloadValue.nameOfWork}' and assigned it to the Group Manager`,
               by: user._id,
               date: new Date(),
             },
@@ -307,7 +308,7 @@ export default class Controller {
       //   gmData._id,
       //   newTender._id!,
       //   NotificationType.TENDER_CREATED,
-      //   `New tender ${payloadValue.name} has been created and assigned to you`
+      //   `New tender ${payloadValue.nameOfWork} has been created and assigned to you`
       // );
 
       const populatedTender = await getTenderById(newTender._id);
@@ -459,8 +460,13 @@ export default class Controller {
 
       const updateQuery: any = {
         $set: {
-          [`tenderNotice.days`]: payloadValue.days,
-          // isNoticeGenerated: true,
+          tenderNotice: {
+            ...(existingTender.tenderNotice || {}),
+            days: payloadValue.days,
+            tender_notice_number: payloadValue.tender_notice_number,
+            tender_notice_date: payloadValue.tender_notice_date,
+            due_date: payloadValue.due_date,
+          },
           partyData: payloadValue.partyData,
         },
       };
@@ -493,7 +499,7 @@ export default class Controller {
                 await sendNotification(
                   adminDetails?.[0]._id.toString(),
                   NotificationType.PARTY_NEEDS_USER,
-                  `Party ${partyDetails.email} has been added to tender ${updatedTender.name}. Please create a user for them.`,
+                  `Party ${partyDetails.email} has been added to tender ${updatedTender.nameOfWork}. Please create a user for them.`,
                 );
               }
 
@@ -502,7 +508,7 @@ export default class Controller {
                 subject: "You have been added to a Tender",
                 text: `Dear ${partyDetails.name || "Party"},
 
-          You have been added as a party to Tender "${updatedTender.name}".
+          You have been added as a party to Tender "${updatedTender.nameOfWork}".
           Please contact the Admin (${
             adminDetails?.[0]?.email
           }) to create your user account.
@@ -598,7 +604,7 @@ export default class Controller {
           await sendNotification(
             gmData._id,
             NotificationType.TENDER_CREATED,
-            `New tender ${existingTender.name} has been created and assigned to you`,
+            `New tender ${existingTender.nameOfWork} has been created and assigned to you`,
             existingTender._id!,
           );
           io.to(gmData._id.toString()).emit(
@@ -630,7 +636,7 @@ export default class Controller {
         res.status(422).json({ message: "Invalid request body" });
       }
       const payloadValue: Partial<ITender> = await this.updateTenderSchema
-        .validateAsync(payload)
+        .validateAsync(payload, { stripUnknown: true })
         .then((value) => value)
         .catch((e) => {
           res.status(422).json(isError(e) ? e : { message: e.message });
@@ -674,7 +680,7 @@ export default class Controller {
                 await sendNotification(
                   adminDetails?.[0]._id.toString(),
                   NotificationType.PARTY_NEEDS_USER,
-                  `Party ${partyUser.email} has been added to tender ${updated.name}. Please create a user for them.`,
+                  `Party ${partyUser.email} has been added to tender ${updated.nameOfWork}. Please create a user for them.`,
                 );
 
                 // 2. Send Email
@@ -683,7 +689,7 @@ export default class Controller {
                   subject: "You have been added to a Tender",
                   text: `Dear ${partyUser.name || "Party"}, 
           
-          You have been added as a party to Tender "${updated.name}". 
+          You have been added as a party to Tender "${updated.nameOfWork}". 
           Please contact the Admin (${
             adminDetails?.[0]?.email
           }) to create your user account. 
@@ -703,15 +709,15 @@ export default class Controller {
         switch (payloadValue.status) {
           case TenderStatus.GM_ACCEPTED:
             notificationType = NotificationType.TENDER_ACCEPTED;
-            message = `Tender "${existingTender.name}" has been accepted by GM`;
+            message = `Tender "${existingTender.nameOfWork}" has been accepted by GM`;
             break;
           case TenderStatus.GM_DECLINED:
             notificationType = NotificationType.TENDER_DECLINED;
-            message = `Tender "${existingTender.name}" has been declined by GM`;
+            message = `Tender "${existingTender.nameOfWork}" has been declined by GM`;
             break;
           case TenderStatus.GM_APPROVED:
             notificationType = NotificationType.TENDER_APPROVED;
-            message = `Tender "${existingTender.name}" has been approved by GM`;
+            message = `Tender "${existingTender.nameOfWork}" has been approved by GM`;
             break;
           default:
             res.status(200).json(updated);
@@ -776,7 +782,7 @@ export default class Controller {
         history: [
           ...(existingTender.history || []),
           {
-            action: `Tender '${existingTender.name}' assigned to winning company '${companyDetails?.firstName} ${companyDetails?.lastName}' by Group Manager`,
+            action: `Tender '${existingTender.nameOfWork}' assigned to winning company '${companyDetails?.firstName} ${companyDetails?.lastName}' by Group Manager`,
             by: req.authUser._id,
             date: new Date(),
           },
@@ -835,8 +841,8 @@ export default class Controller {
       const action =
         payloadValue?.status === TenderStatus.GM_ACCEPTED ||
         TenderStatus.GM_QUTATION_PENDING
-          ? `Tender '${existingTender.name}' accepted by Group Manager`
-          : `Tender '${existingTender.name}' declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
+          ? `Tender '${existingTender.nameOfWork}' accepted by Group Manager`
+          : `Tender '${existingTender.nameOfWork}' declined by Group Manager. Reason: ${payloadValue?.declineReason}`;
 
       const mergedTender = {
         ...existingTender,
@@ -966,7 +972,7 @@ export default class Controller {
           history: [
             ...(existingTender.history || []),
             {
-              action: `Tender '${existingTender.name}' approved by Group Manager and assigned to Tender Manager`,
+              action: `Tender '${existingTender.nameOfWork}' approved by Group Manager and assigned to Tender Manager`,
               by: req.authUser._id,
               date: new Date(),
             },
@@ -1023,7 +1029,7 @@ export default class Controller {
       await sendNotification(
         tenderDetails.companyAssigned,
         NotificationType.TENDER_APPROVED_BY_TM,
-        `New Tender ${tenderDetails.name} has been created and assigned to you`,
+        `New Tender ${tenderDetails.nameOfWork} has been created and assigned to you`,
         tenderDetails._id,
       );
     } catch (error) {
@@ -1072,8 +1078,8 @@ export default class Controller {
 
       const action =
         payloadValue?.status === "CM_ACCEPTED"
-          ? `Tender '${existingTender.name}' accepted by Company Manager`
-          : `Tender '${existingTender.name}' declined by Company Manager. Reason: ${payloadValue?.declineReason}`;
+          ? `Tender '${existingTender.nameOfWork}' accepted by Company Manager`
+          : `Tender '${existingTender.nameOfWork}' declined by Company Manager. Reason: ${payloadValue?.declineReason}`;
 
       const mergedTender = {
         ...existingTender,

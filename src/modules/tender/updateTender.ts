@@ -1,5 +1,6 @@
 import { Tender } from ".";
 import { TenderModel } from "./schema";
+import { stripTenderName } from "./stripTenderName";
 
 /**
  *
@@ -7,6 +8,9 @@ import { TenderModel } from "./schema";
  * @returns update tender record
  */
 export const updateTender = async (tender: Tender) => {
-  await TenderModel.findByIdAndUpdate(tender._id, tender.toJSON());
+  await TenderModel.findByIdAndUpdate(tender._id, {
+    ...stripTenderName(tender.toJSON()),
+    $unset: { name: "" },
+  });
   return tender;
 };

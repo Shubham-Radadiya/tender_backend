@@ -17,6 +17,7 @@ import { getTenderQuotationByTenderId } from "../../modules/tenderQuotation";
 import { BillStatus } from "../../modules/bill/schema";
 import { UserRole } from "../../modules/user/schema";
 import { getTenderById } from "../../modules/tender";
+import { getTenderTitle } from "../../modules/tender/stripTenderName";
 import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
 import { sendNotification } from "../../helper/sendNotification";
 import { getGM, getTM } from "../../modules/user";
@@ -198,7 +199,7 @@ export default class Controller {
         await sendNotification(
           getTMData._id,
           NotificationType.payment_COMPLETED,
-          `Payment completed for tender ${tender?.name || ""} ${
+          `Payment completed for tender ${getTenderTitle(tender)} ${
             workOrderTender.title
               ? `related to work order ${workOrderTender.title}`
               : ""
@@ -208,7 +209,7 @@ export default class Controller {
         await sendNotification(
           getGMData._id,
           NotificationType.payment_COMPLETED,
-          `Payment completed for tender ${tender?.name || ""} ${
+          `Payment completed for tender ${getTenderTitle(tender)} ${
             workOrderTender.title
               ? `related to work order ${workOrderTender.title}`
               : ""

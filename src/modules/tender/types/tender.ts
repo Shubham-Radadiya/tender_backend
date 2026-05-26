@@ -10,7 +10,6 @@ export interface ITender {
   _id?: string;
   tenderNo: string;
   tenderType: string;
-  name: string;
   subject: string;
   createdDate: Date;
   isNoticeGenerated: boolean;
@@ -60,7 +59,6 @@ export class Tender implements ITender {
   _id?: string;
   tenderNo: string;
   tenderType: string;
-  name: string;
   subject: string;
   createdDate: Date;
   lastDate: Date;
@@ -111,7 +109,6 @@ export class Tender implements ITender {
       : new Types.ObjectId().toString();
     this.tenderNo = input.tenderNo;
     this.tenderType = input.tenderType;
-    this.name = input.name;
     this.subject = input.subject;
     this.isNoticeGenerated = input.isNoticeGenerated ?? false;
     this.createdDate = input.createdDate;

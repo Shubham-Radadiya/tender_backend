@@ -28,7 +28,6 @@ const tender = new Schema<ITender>(
   {
     // tenderNo: { type: String },
     srNo: { type: String, default: null },
-    name: { type: String },
     subject: { type: String },
     tenderType: { type: String, default: "GEM" },
     createdDate: { type: Date },
