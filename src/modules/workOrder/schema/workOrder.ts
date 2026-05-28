@@ -31,6 +31,9 @@ const workOrder = new Schema<IWorkOrder>(
     invoiceNumber: {
       type: String,
     },
+    invoiceDate: {
+      type: Date,
+    },
     dueDate: {
       type: Date,
     },
@@ -39,6 +42,11 @@ const workOrder = new Schema<IWorkOrder>(
     },
     workOrderCreateDate: {
       type: Date,
+    },
+    isBillGenerated: {
+      type: Boolean,
+      default: false,
+      required: true,
     },
   },
   {

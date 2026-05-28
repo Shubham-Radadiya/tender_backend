@@ -11,6 +11,11 @@ export const getTenderById = async (_id: string) => {
   const tender = await TenderModel.findById(_id)
     .populate("category")
     .populate("department")
+    .populate(
+      "companyAssigned",
+      "firstName lastName address phoneNumber name companyDetails profile",
+    )
+    .populate("items.unit", "name")
     .populate("history.by", "firstName lastName role")
     .lean();
   if (!tender) return null;

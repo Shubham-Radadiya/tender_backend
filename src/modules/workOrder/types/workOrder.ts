@@ -13,13 +13,17 @@ export interface IWorkOrder {
   fileName?: string;
   amount?: number;
   invoiceNumber?: String;
+  invoiceDate?: Date;
   originalFileName?: string;
   dueDate?: Date;
   workOrderNumber?: string;
   workOrderCreateDate?: Date;
+  isBillGenerated?: boolean;
   createdAt: Date;
-  updatedAt: Date;  departmentName?: string;
-  companyName?: string;}
+  updatedAt: Date;
+  departmentName?: string;
+  companyName?: string;
+}
 
 export class WorkOrder implements IWorkOrder {
   _id?: string;
@@ -32,12 +36,15 @@ export class WorkOrder implements IWorkOrder {
   fileName?: string;
   amount?: number;
   invoiceNumber?: String;
+  invoiceDate?: Date;
   originalFileName?: string;
   dueDate?: Date;
   workOrderNumber?: string;
   workOrderCreateDate?: Date;
+  isBillGenerated?: boolean;
   createdAt: Date;
-  updatedAt: Date;  departmentName?: string;
+  updatedAt: Date;
+  departmentName?: string;
   companyName?: string;
   constructor(input: IWorkOrder) {
     this._id = input._id || new Types.ObjectId().toString();
@@ -51,9 +58,11 @@ export class WorkOrder implements IWorkOrder {
     this.originalFileName = input.originalFileName;
     this.amount = input.amount;
     this.invoiceNumber = input.invoiceNumber;
+    this.invoiceDate = input.invoiceDate;
     this.dueDate = input.dueDate;
     this.workOrderNumber = input.workOrderNumber;
     this.workOrderCreateDate = input.workOrderCreateDate;
+    this.isBillGenerated = input.isBillGenerated ?? false;
     this.createdAt = input.createdAt;
     this.updatedAt = input.updatedAt;
     this.departmentName = input.departmentName;

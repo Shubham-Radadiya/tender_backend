@@ -7,6 +7,10 @@ import { WorkOrderModel } from "./schema";
  * @returns Created workOrder
  */
 export const createWorkOrder = async (workOrder: WorkOrder) => {
-  const newParty = await WorkOrderModel.create(workOrder.toJSON());
+  const payload = {
+    ...workOrder.toJSON(),
+    isBillGenerated: workOrder.isBillGenerated ?? false,
+  };
+  const newParty = await WorkOrderModel.create(payload);
   return new WorkOrder(newParty.toObject());
 };

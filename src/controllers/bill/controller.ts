@@ -18,7 +18,10 @@ import { BillStatus } from "../../modules/bill/schema";
 import { UserRole } from "../../modules/user/schema";
 import { getTenderById } from "../../modules/tender";
 import { getTenderTitle } from "../../modules/tender/stripTenderName";
-import { generateInvoiceNumber } from "../../helper/generateInvoiceNumber";
+import {
+  generateInvoiceNumber,
+  resolveCompanyName,
+} from "../../helper/generateInvoiceNumber";
 import { sendNotification } from "../../helper/sendNotification";
 import { getGM, getTM } from "../../modules/user";
 import { NotificationType } from "../../modules/notification/schema";
@@ -228,11 +231,19 @@ export default class Controller {
       let invoiceNumber;
       if (payload?.invoiceNumber) {
         invoiceNumber = payload?.invoiceNumber;
+      } else if (workOrderTender.invoiceNumber) {
+        invoiceNumber = String(workOrderTender.invoiceNumber);
       } else {
-        invoiceNumber = await generateInvoiceNumber(
-          authUser,
-          payloadValue?.workOrderId.toString()
-        );
+        const tenderCompany =
+          typeof workOrderTender.tenderId === "object"
+            ? workOrderTender.tenderId?.companyAssigned
+            : null;
+        const companyName =
+          tenderCompany && typeof tenderCompany === "object"
+            ? resolveCompanyName(tenderCompany)
+            : resolveCompanyName(authUser);
+
+        invoiceNumber = await generateInvoiceNumber(authUser, { companyName });
       }
 
       const newBill = await createBill(

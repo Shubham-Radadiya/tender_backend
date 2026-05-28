@@ -1,4 +1,3 @@
-import { WorkOrder } from ".";
 import { WorkOrderModel } from "./schema";
 
 /**
@@ -9,16 +8,22 @@ import { WorkOrderModel } from "./schema";
 export const getWorkOrderById = async (_id: string) => {
   const workOrder = await WorkOrderModel.findById(_id).populate({
     path: "tenderId",
-    select: "companyAssigned department",
+    select: "companyAssigned department items subject nameOfWork",
     populate: [
       {
         path: "companyAssigned",
         model: "user",
-        select: "firstName lastName",
+        select:
+          "firstName lastName address phoneNumber name companyDetails profile",
       },
       {
         path: "department",
         model: "department",
+        select: "name",
+      },
+      {
+        path: "items.unit",
+        model: "unit",
         select: "name",
       },
     ],
